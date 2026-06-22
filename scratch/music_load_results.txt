@@ -1,0 +1,22 @@
+Scanning music tracks...
+Found tracks in UI list: [{'id': 'Root Chakra  396 Hz тихе', 'label': 'Root Chakra  396 Hz Тихе', 'filename': 'Root Chakra  396 Hz тихе.mp3'}, {'id': 'Tibetan Singing Bowl Meditation Chakra Healing _ Third Eye _ Brow Chakra', 'label': 'Tibetan Singing Bowl Meditation Chakra Healing   Third Eye   Brow Chakra', 'filename': 'Tibetan Singing Bowl Meditation Chakra Healing _ Third Eye _ Brow Chakra.mp3'}, {'id': 'singing_bowl_2', 'label': 'Singing Bowl 2', 'filename': 'singing_bowl_2.mp3'}, {'id': 'singing_bowl_тихе', 'label': 'Singing Bowl Тихе', 'filename': 'singing_bowl_тихе.mp3'}]
+
+Testing load for: Root Chakra  396 Hz Тихе (ID: Root Chakra  396 Hz тихе)
+Audio shape: (441000, 2)
+Max amplitude: 0.936517
+--> RESULT: SUCCESS (Loaded correctly)
+
+Testing load for: Tibetan Singing Bowl Meditation Chakra Healing   Third Eye   Brow Chakra (ID: Tibetan Singing Bowl Meditation Chakra Healing _ Third Eye _ Brow Chakra)
+Audio shape: (441000, 2)
+Max amplitude: 0.978762
+--> RESULT: SUCCESS (Loaded correctly)
+
+Testing load for: Singing Bowl 2 (ID: singing_bowl_2)
+Audio shape: (441000, 2)
+Max amplitude: 0.615777
+--> RESULT: SUCCESS (Loaded correctly)
+
+Testing load for: Singing Bowl Тихе (ID: singing_bowl_тихе)
+Audio shape: (441000, 2)
+Max amplitude: 0.573638
+--> RESULT: SUCCESS (Loaded correctly)

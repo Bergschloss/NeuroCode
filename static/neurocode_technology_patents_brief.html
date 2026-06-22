@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neurocode Studio - Technology & Patents Brief</title>
+    <!-- Import Google Fonts for high-end typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a24;
+            --muted-color: #5c5c6d;
+            --border-color: #e2e2e9;
+            --accent-purple: #635bff;
+            --accent-cyan: #0088cc;
+            --accent-pink: #d93d7a;
+            --bg-code: #f6f6f9;
+        }
+
+        /* Basic Layout & Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Header Design */
+        header {
+            border-bottom: 2px solid var(--text-color);
+            padding-bottom: 30px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .doc-meta {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--muted-color);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: var(--text-color);
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--muted-color);
+            font-weight: 400;
+            max-width: 700px;
+        }
+
+        /* Sections and Columns */
+        .section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .sec-num {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-purple);
+            margin-right: 10px;
+            background: #f0eeff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .tech-box {
+            background-color: #fafafc;
+            border-left: 3px solid var(--accent-purple);
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 12px;
+        }
+
+        .tech-box.cyan { border-left-color: var(--accent-cyan); }
+        .tech-box.pink { border-left-color: var(--accent-pink); }
+        
+        .tech-box.cyan .sec-num { background: #e0f2fe; color: var(--accent-cyan); }
+        .tech-box.pink .sec-num { background: #ffe4e6; color: var(--accent-pink); }
+
+        p {
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            color: #333344;
+        }
+
+        /* Patent Card styling */
+        .patent-info {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .patent-title {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .patent-badge {
+            background-color: #222230;
+            color: #ffffff;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 8px;
+            letter-spacing: 0.05em;
+        }
+
+        .patent-desc {
+            font-size: 0.85rem;
+            color: var(--muted-color);
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 60px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted-color);
+        }
+
+        /* Print styling rules */
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 11pt;
+            }
+            
+            a {
+                text-decoration: none;
+                color: var(--text-color);
+            }
+            
+            .no-print {
+                display: none;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+        }
+
+        /* UI elements */
+        .download-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--text-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+            background-color: #222233;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Download/Print floating button -->
+    <button class="download-btn no-print" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        SAVE AS PDF
+    </button>
+
+    <header>
+        <div class="doc-meta">
+            <span>Technical Whitepaper</span>
+            <span>Neurocode Studio v2.0</span>
+        </div>
+        <h1>NEUROCODE STUDIO</h1>
+        <div class="subtitle">Scientific foundations, digital signal processing (DSP) pipelines, and patent specifications for the subliminal audio generation engine.</div>
+    </header>
+
+    <!-- SECTION 1 -->
+    <div class="section">
+        <h2><span class="sec-num">01</span>Amplitude Modulation Subliminal Encoding</h2>
+        <p>The core voice transmission pipeline bypasses conscious auditory parsing by shifting the speech spectrum (which naturally sits between 100 Hz and 4,000 Hz) into the near-ultrasonic high-frequency spectrum (3,000 Hz to 18,000 Hz). This is accomplished through Amplitude Modulation (AM) mapping onto a linear carrier frequency grid.</p>
+        <p>By modulating the amplitude of ultrasonic carrier waves with the affirmations voice signal, the speech patterns are preserved in the envelope of the signal. The conscious mind registers only a subtle high-frequency shimmer or silence, while the cochlea and auditory cortex decode the envelope, delivering affirmations directly to the subconscious mind.</p>
+        
+        <div class="tech-box">
+            <p><strong>Technical Implementation:</strong> A multi-layered grid of up to 32 voices is processed in parallel. Each voice is time-stretched dynamically (between 2.0x and 10.0x speed) and modulated with randomized carrier phase offsets to create a dense, undecipherable acoustic matrix. Odd layers are hard-panned left, even layers hard-panned right to enforce complete hemispheric stereo separation.</p>
+            
+            <div class="patent-info">
+                <div class="patent-title">
+                    <span class="patent-badge">US Patent</span> 5,159,703 (Expired)
+                </div>
+                <div class="patent-desc">
+                    <strong>Silent Subliminal Presentation System</strong> (Oliver M. Lowery, 1992). Describes a method of transmitting subliminal messages by modulating an audio signal onto a high-frequency carrier wave (typically 14.5 kHz) which is near or above the limit of normal human hearing, permitting silent subconscious delivery.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section page-break">
+        <h2><span class="sec-num">02</span>Pure Binaural Beats & Hemispheric Synchronization</h2>
+        <p>Binaural beats represent a well-documented auditory illusion occurring in the brain when two slightly different carrier frequencies are presented to each ear. The brain processes these signals in the superior olivary nucleus, creating a perceived third frequency representing the difference (e.g., L: 136.1 Hz, R: 140.1 Hz produces a 4 Hz Theta beat).</p>
+        <p>This difference frequency entrains the brain's electrical oscillations (electroencephalographic waves) through the <strong>Frequency Following Response (FFR)</strong>, inducing specified cognitive states such as Theta (4 Hz for meditation/deep absorption), Alpha (10 Hz for focus), or Delta (2 Hz for recovery).</p>
+        
+        <div class="tech-box cyan">
+            <p><strong>Technical Implementation:</strong> Neurocode Studio synthesizes pure mathematical sine waves without harmonic overtones. The left channel uses a fundamental frequency of 136.1 Hz (the "Ohm" frequency, corresponding to the C# tone in classical tuning), while the right channel is offset precisely to target specific brainwave bands.</p>
+            
+            <div class="patent-info">
+                <div class="patent-title">
+                    <span class="patent-badge">US Patents</span> 3,884,218 / 5,213,562 / 5,356,368
+                </div>
+                <div class="patent-desc">
+                    <strong>Hemispheric Synchronization (Hemi-Sync) Methods</strong> (Robert A. Monroe, Monroe Institute). Covers procedures for inducing altered states of consciousness, focus, and physical relaxation by using binaural beats to synchronize the electrical activity of the left and right hemispheres of the human brain.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section">
+        <h2><span class="sec-num">03</span>Psychoacoustic Masking & Surgical Notch EQ</h2>
+        <p>In classical psychoacoustics, <strong>frequency masking</strong> occurs when a louder, broad-spectrum sound (such as background music or noise) covers or makes inaudible a quieter, narrow-band sound (such as the binaural carrier tones). This is dictated by the "critical bands" of the human cochlea, as defined in Eberhard Zwicker's critical band model.</p>
+        <p>To keep the therapeutic binaural beats fully functional without forcing the user to raise their volume (which degrades the listening experience), the background music must be surgically altered to prevent masking.</p>
+        
+        <div class="tech-box pink">
+            <p><strong>Technical Implementation:</strong> When binaural beats and background music are combined, the DSP engine automatically applies a digital Infinite Impulse Response (IIR) notch filter with an extremely high quality factor (Q = 30). This carves narrow V-shaped frequency cuts in the background music exactly at 136.1 Hz and 140.1 Hz. The cut is so surgical (~4 Hz wide) that the human ear cannot perceive any change in the music, yet it opens an "acoustic window" that makes the binaural beat highly effective.</p>
+            
+            <div class="patent-info">
+                <div class="patent-title">
+                    <span class="patent-badge">US Patent</span> 9,549,269 B2 / Sivantos Notch Therapy
+                </div>
+                <div class="patent-desc">
+                    <strong>Auditory Processing with Notch Filters</strong> (Sivantos / Signia Hearing Systems). Establishes methods for processing audio signals using surgical notch filters to target specific frequency ranges for therapeutic benefits (such as tonal tinnitus management via lateral inhibition).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="section">
+        <h2><span class="sec-num">04</span>Neural Speech Synthesis & Heuristic Routing</h2>
+        <p>Modern cognitive behavioral therapy (CBT) and subliminal delivery rely on high-fidelity, naturally spoken language. Neurocode Studio generates audio affirmations using advanced deep learning text-to-speech architectures.</p>
+        
+        <div class="tech-box">
+            <p><strong>Technical Implementation:</strong> Affirmations are generated via Microsoft Azure Neural Text-to-Speech engines (using edge-tts). An automated heuristic language detector parses Unicode text blocks in real time (e.g., checking for Ukrainian-specific glyphs like 'ї, і, є, ґ' vs other languages) to select the correct phonetic voice model. Mono voice outputs are duplicated to both Left and Right channels for identical stereo delivery.</p>
+        </div>
+    </div>
+
+    <footer>
+        <span>Neurocode Studio &copy; 2026</span>
+        <span>Proprietary DSP Engineering Suite</span>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Liquid Flow · Progress Indicator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+/* =====================================================
+   LIQUID FLOW · standalone progress indicator
+   Drop-in component. Drive with setProgress(pct, msg).
+   ===================================================== */
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --lf-bg:        #1a1a1a;
+  --lf-ink:       #ffffff;
+  --lf-ink-2:     #e6e6e6;
+  --lf-ink-3:     #9a9a9a;
+  --lf-ink-4:     #6a6a6a;
+  --lf-hair:      #4a4a4a;
+  --lf-bar-bg:    #0f0f0f;
+  --lf-fill:      #ffffff;  /* prominent marble */
+  --lf-base:      #3d3d3d;  /* faint marble */
+  --lf-edge:      #ffffff;
+}
+
+html,body{background:var(--lf-bg);color:var(--lf-ink)}
+body{
+  font-family:'Inter',Helvetica,Arial,sans-serif;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:32px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- Component ---------- */
+
+.lf-progress{
+  width:100%;max-width:840px;
+  display:flex;flex-direction:column;gap:12px;
+}
+
+.lf-label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--lf-ink-2);
+}
+.lf-label .lf-pct{
+  font-family:'Inter',sans-serif;
+  font-size:28px;font-weight:800;letter-spacing:-.02em;
+  color:var(--lf-ink);
+}
+
+.lf-bar{
+  position:relative;height:88px;
+  background:var(--lf-bar-bg);
+  border:1px solid var(--lf-hair);
+  overflow:hidden;
+  container-type:inline-size;
+  container-name:lfbar;
+}
+
+.lf-marble-base,
+.lf-marble-fill-inner{
+  position:absolute;top:0;left:0;height:100%;
+  pointer-events:none;
+}
+.lf-marble-base{width:100%;opacity:.6}
+.lf-marble-base svg,
+.lf-marble-fill-inner svg{display:block;width:100%;height:100%}
+
+.lf-fill{
+  position:absolute;top:0;left:0;bottom:0;
+  width:0%;
+  overflow:hidden;
+  transition:width .55s cubic-bezier(.5,1.1,.4,1);
+}
+.lf-marble-fill-inner{width:100cqw}
+
+/* Leading edge marker */
+.lf-fill::after{
+  content:"";
+  position:absolute;top:-4px;right:-1px;
+  width:2px;height:calc(100% + 8px);
+  background:var(--lf-edge);
+}
+
+/* Scrubber arrow above the fill */
+.lf-marker{
+  position:absolute;top:-9px;
+  width:0;height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:7px solid var(--lf-edge);
+  left:calc(var(--lf-pct,0%) - 6px);
+  transition:left .55s cubic-bezier(.5,1.1,.4,1);
+  pointer-events:none;
+}
+
+.lf-ticks{
+  display:flex;justify-content:space-between;
+  font-family:'Space Mono',monospace;
+  font-size:9px;letter-spacing:.14em;
+  color:var(--lf-ink-4);text-transform:uppercase;
+  margin-top:6px;
+}
+.lf-ticks span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.lf-ticks span::before{content:"";width:1px;height:3px;background:var(--lf-ink-4)}
+
+.lf-status{
+  font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:.06em;
+  color:var(--lf-ink-2);
+  margin-top:14px;
+}
+
+/* ---------- Demo controls ---------- */
+.lf-demo-controls{
+  margin-top:36px;display:flex;gap:8px;flex-wrap:wrap;
+}
+.lf-demo-controls button{
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--lf-ink-2);
+  padding:8px 14px;background:transparent;
+  border:1px solid var(--lf-hair);cursor:pointer;border-radius:0;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.lf-demo-controls button:hover{
+  background:var(--lf-ink);color:var(--lf-bg);border-color:var(--lf-ink);
+}
+.lf-demo-note{
+  margin-top:16px;font-family:'Space Mono',monospace;font-size:10px;
+  color:var(--lf-ink-4);letter-spacing:.18em;text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SVG filter (must live somewhere on the page) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="lf-liquid" x="-2%" y="-20%" width="104%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.025" numOctaves="2" seed="5">
+        <animate attributeName="baseFrequency" dur="18s"
+          values="0.006 0.025;0.012 0.04;0.006 0.025" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" scale="38"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ===== Component ===== -->
+<div style="display:flex;flex-direction:column;align-items:stretch;width:100%;max-width:840px">
+
+  <div class="lf-progress" id="lfRoot">
+    <div class="lf-label">
+      <span id="lfStage">Loading...</span>
+      <span class="lf-pct" id="lfPct">0%</span>
+    </div>
+
+    <div class="lf-bar">
+      <span class="lf-marker" aria-hidden="true"></span>
+      <div class="lf-marble-base" aria-hidden="true">
+        <svg viewBox="0 0 1000 88" preserveAspectRatio="none">
+          <g filter="url(#lf-liquid)" stroke="var(--lf-base)" stroke-width=".7" fill="none" id="lfBase"></g>
+        </svg>
+      </div>
+      <div class="lf-fill" id="lfFill">
+        <div class="lf-marble-fill-inner" aria-hidden="true">
+          <svg viewBox="0 0 1000 88" preserveAspectRatio="none">
+            <g filter="url(#lf-liquid)" stroke="var(--lf-fill)" stroke-width=".75" fill="none" id="lfFillG"></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="lf-ticks">
+      <span>00</span><span>25</span><span>50</span><span>75</span><span>100</span>
+    </div>
+
+    <div class="lf-status" id="lfStatus">Initialising encoder pipeline...</div>
+  </div>
+
+  <!-- Demo controls -->
+  <div class="lf-demo-controls">
+    <button data-pct="0">0%</button>
+    <button data-pct="15">15%</button>
+    <button data-pct="38">38%</button>
+    <button data-pct="62">62%</button>
+    <button data-pct="85">85%</button>
+    <button data-pct="100">100%</button>
+    <button id="lfAuto">Auto cycle</button>
+  </div>
+  <div class="lf-demo-note">// Drive via setProgress(pct, msg)</div>
+</div>
+
+<script>
+/* =====================================================
+   Liquid Flow — Component logic
+   ===================================================== */
+
+// 1. Populate the marble line set on both layers (one geometry, two colors)
+(function(){
+  const SVG = 'http://www.w3.org/2000/svg';
+  const base = document.getElementById('lfBase');
+  const fill = document.getElementById('lfFillG');
+  if (!base || !fill) return;
+  const N = 18;
+  for (let i = 0; i < N; i++) {
+    const y = 6 + i * (76 / (N - 1));
+    const d = `M-40 ${y} L 1040 ${y}`;
+    const p1 = document.createElementNS(SVG, 'path'); p1.setAttribute('d', d); base.appendChild(p1);
+    const p2 = document.createElementNS(SVG, 'path'); p2.setAttribute('d', d); fill.appendChild(p2);
+  }
+})();
+
+// 2. Public API
+function setProgress(pct, msg){
+  pct = Math.max(0, Math.min(100, pct));
+  document.getElementById('lfFill').style.width = pct + '%';
+  document.getElementById('lfPct').textContent = Math.round(pct) + '%';
+  document.getElementById('lfRoot').style.setProperty('--lf-pct', pct + '%');
+  if (msg !== undefined) document.getElementById('lfStatus').textContent = msg;
+}
+function setStage(text){
+  document.getElementById('lfStage').textContent = text;
+}
+
+// Expose so external code (e.g. Gemini-generated wrapper) can drive it
+window.setProgress = setProgress;
+window.setStage = setStage;
+
+// 3. Demo controls
+const stages = [
+  { p:5,   stage:'Sending request',     msg:'$ ncs --init --48k --stereo' },
+  { p:15,  stage:'Generating TTS',      msg:'Voice models warming up...' },
+  { p:38,  stage:'AM encoding',         msg:'Multi-layer amplitude modulation · 38%' },
+  { p:62,  stage:'Binaural carrier',    msg:'θ 4 Hz · 136.1↔140.1 Hz' },
+  { p:85,  stage:'Notch · Q=30',        msg:'Surgical EQ · removing carrier from music' },
+  { p:100, stage:'Done',                msg:'Normalised. File ready.' },
+];
+
+document.querySelectorAll('.lf-demo-controls button[data-pct]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const p = Number(btn.dataset.pct);
+    const s = stages.find(x => Math.abs(x.p - p) < 8) || { stage:'Loading', msg:'Working...' };
+    setStage(s.stage);
+    setProgress(p, s.msg);
+  });
+});
+
+let autoTimer = null;
+let autoIdx = 0;
+document.getElementById('lfAuto').addEventListener('click', () => {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; return; }
+  autoIdx = 0;
+  setStage(stages[0].stage);
+  setProgress(stages[0].p, stages[0].msg);
+  autoTimer = setInterval(() => {
+    autoIdx = (autoIdx + 1) % stages.length;
+    const s = stages[autoIdx];
+    setStage(s.stage);
+    setProgress(s.p, s.msg);
+  }, 1500);
+});
+
+// Initial state
+setStage('Ready');
+setProgress(0, 'Standby · awaiting signal');
+</script>
+</body>
+</html>

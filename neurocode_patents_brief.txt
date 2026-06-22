@@ -1,0 +1,111 @@
+================================================================================
+NEUROCODE STUDIO: SCIENTIFIC FOUNDATIONS, DSP PIPELINES & PATENT SPECIFICATIONS
+================================================================================
+
+Neurocode Studio is a premium psychoacoustic software suite designed for the 
+generation of subliminal audio (audio affirmations targeted directly at the 
+subconscious mind) in WAV format. Below is a detailed description of the 
+acoustical engineering, mathematical frameworks, and patent foundations.
+
+--------------------------------------------------------------------------------
+1. AMPLITUDE MODULATION (AM) SUBLIMINAL ENCODING (SILENT SUBLIMINALS)
+--------------------------------------------------------------------------------
+* Technology Overview:
+  This technology transfers the speaker's vocal signal (which naturally resides 
+  within the 100 Hz to 4,000 Hz range) into the high-frequency near-ultrasonic 
+  spectrum (ranging from 3,000 Hz up to 18,000 Hz) using Amplitude Modulation (AM) 
+  onto a grid of carrier frequencies. This process shifts the vocal signal into 
+  the upper limit of human hearing, where conscious auditory perception drops to 
+  near zero, yet the subconscious mind continues to register and decode the 
+  envelope of the modulated wave.
+
+* Technical DSP Implementation:
+  The program generates between 4 and 32 parallel layers of affirmations. The 
+  carrier frequencies are distributed linearly across the high-frequency 
+  spectrum. Shifting the signal to the near-ultrasound range completely 
+  eliminates conscious parsing of the words. A dynamic Time-Stretch ranging from 
+  2.0x to 10.0x is applied to each layer to make the speech completely 
+  unrecognizable consciously, while remaining easily parsed by the subconscious. 
+  "Hard Stereo" panning is enforced, routing even-numbered layers to the Left 
+  channel and odd-numbered layers to the Right channel (up to 16 unique layers 
+  per ear).
+
+* Patent Reference:
+  - U.S. Patent No. 5,159,703 ("Silent Subliminal Presentation System", Oliver 
+    M. Lowery, 1992 - Expired). This patent describes a method for transmitting 
+    subliminal messages by modulating the amplitude of an audio signal onto a 
+    high-frequency carrier wave (typically 14.5 kHz), allowing silent delivery 
+    directly to the subconscious mind.
+
+--------------------------------------------------------------------------------
+2. PURE BINAURAL BEATS & HEMISPHERIC SYNCHRONIZATION (FREQUENCY FOLLOWING RESPONSE)
+--------------------------------------------------------------------------------
+* Technology Overview:
+  Binaural beats are an auditory illusion created by the brain when two pure sine 
+  waves with slightly different frequencies are played separately into each ear 
+  (e.g., 136.1 Hz in the left ear and 140.1 Hz in the right ear). The brain 
+  combines these signals in the superior olivary nucleus of the brainstem, 
+  producing a perceived third frequency representing the difference (in this 
+  case, a 4 Hz Theta beat). This difference frequency entrains brainwave activity 
+  via the Frequency Following Response (FFR), synchronizing the electrical 
+  activity of the left and right hemispheres.
+
+* Technical DSP Implementation:
+  Neurocode Studio synthesizes pure binaural beats using mathematically precise 
+  sine generators without harmonic overtones. The left channel uses a fundamental 
+  carrier of 136.1 Hz (C# / Ohm frequency), while the right channel uses the 
+  offset. Supported target states include Delta (2 Hz for sleep/recovery), Theta 
+  (4 Hz for deep meditation), Alpha (10 Hz for focus/learning), and Beta (15 Hz 
+  for active processing).
+
+* Patent References:
+  - U.S. Patent No. 3,884,218 (Robert A. Monroe, 1975 - Expired): The pioneer 
+    patent for Hemispheric Synchronization (Hemi-Sync) technology.
+  - U.S. Patent No. 5,213,562 (Robert A. Monroe, 1993 - Expired): Method of 
+    inducing mental, emotional, and physical states of consciousness by 
+    superimposing specific binaural signals onto audio.
+  - U.S. Patent No. 5,356,368 (Robert A. Monroe, 1994 - Expired): Methods and 
+    apparatus for inducing sleep and targeted states of consciousness.
+
+--------------------------------------------------------------------------------
+3. SURGICAL NOTCH EQ (PREVENTING PSYCHOACOUSTIC FREQUENCY MASKING)
+--------------------------------------------------------------------------------
+* Technology Overview:
+  In psychoacoustics, frequency masking occurs when a louder sound (like music or 
+  pink noise) covers a quieter sound within the same frequency band. This is 
+  governed by the critical bands of the human cochlea (Eberhard Zwicker's critical 
+  band model). When background music is played alongside a binaural beat, the 
+  music frequencies mask the binaural carriers, reducing their therapeutic 
+  efficacy.
+
+* Technical DSP Implementation:
+  To keep binaural beats effective without raising their volume (which would 
+  disturb the user), the DSP engine applies a digital Infinite Impulse Response 
+  (IIR) notch filter with an extremely high quality factor (Q = 30). This carves 
+  narrow V-shaped frequency cuts in the background music exactly at the carrier 
+  frequencies (136.1 Hz and 140.1 Hz). Because the notch is extremely narrow 
+  Clicking at (~4-5 Hz wide), the listener does not perceive any degradation in 
+  the music, yet it opens a clear frequency window for the binaural beat to operate.
+
+* Patent Reference Context:
+  Notch filtering music is widely used in Tailor-Made Notched Music Training 
+  (TMNMT) for tonal tinnitus management via lateral cortical inhibition. 
+  Specific commercial hearing-aid implementations are patented by auditory tech 
+  leaders (e.g., Sivantos / Signia Notch Therapy, licensed under U.S. Patent No. 
+  9,549,269 B2).
+
+--------------------------------------------------------------------------------
+4. NEURAL TEXT-TO-SPEECH (TTS) SYNTHESIS & HEURISTIC ROUTING
+--------------------------------------------------------------------------------
+* Technology Overview:
+  High-quality cognitive absorption of affirmations requires natural speech 
+  patterns, correct stress, and native pronunciation. 
+
+* Technical DSP Implementation:
+  Neurocode Studio utilizes advanced deep learning Neural TTS engines via edge-tts 
+  (backed by Microsoft Azure Cognitive Services). To handle multilingual scripts, 
+  the program runs a real-time heuristic text parser that detects language-specific 
+  Unicode characters (e.g., identifying Ukrainian-specific glyphs 'ї, і, є, ґ' vs 
+  other languages) and routes the text to appropriate native neural voices. Mono 
+  voice outputs are duplicated to both Left and Right channels for identical stereo.
+================================================================================

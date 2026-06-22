@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Neurocode Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Unbounded:wght@300;500;700;800&family=Space+Mono:wght@400;700&family=Syne:wght@500;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* =====================================================
+   NEUROCODE STUDIO — Space Cyberpunk / Glassmorphism
+   ===================================================== */
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  /* Deep space palette */
+  --bg-0:#020208;
+  --bg-1:#06061a;
+  --bg-2:#0a0a22;
+
+  /* Neon accents */
+  --cyan:#00e5ff;
+  --cyan-soft:#22d3ee;
+  --purple:#b14dff;
+  --purple-soft:#a78bfa;
+  --green:#10ffa8;
+  --green-soft:#34d399;
+  --amber:#ffb800;
+  --amber-soft:#fbbf24;
+  --red:#ff4d6d;
+  --pink:#ff5fb8;
+
+  /* Glass surfaces */
+  --glass:rgba(255,255,255,.025);
+  --glass-strong:rgba(255,255,255,.045);
+  --border:rgba(255,255,255,.07);
+  --border-strong:rgba(255,255,255,.12);
+
+  /* Text */
+  --text:#e6e9f2;
+  --text-dim:#a8b0c4;
+  --muted:#5f6885;
+
+  /* Shadows / glow */
+  --glow-cyan:0 0 28px rgba(0,229,255,.35), 0 0 60px rgba(0,229,255,.12);
+  --glow-purple:0 0 28px rgba(177,77,255,.35), 0 0 60px rgba(177,77,255,.12);
+  --glow-green:0 0 28px rgba(16,255,168,.30), 0 0 60px rgba(16,255,168,.10);
+  --glow-amber:0 0 24px rgba(255,184,0,.30), 0 0 50px rgba(255,184,0,.10);
+}
+
+html,body{background:var(--bg-0);color:var(--text)}
+body{
+  font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  font-feature-settings:"ss01","cv11";
+  -webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(0,229,255,.10), transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(177,77,255,.10), transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(6,8,30,1), var(--bg-0));
+}
+
+/* --- Cosmic backdrop --- */
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(140px);opacity:.32;mix-blend-mode:screen;will-change:transform}
+.orb-1{width:680px;height:680px;background:radial-gradient(circle at 30% 30%, #00e5ff, transparent 70%);top:-260px;left:-220px;animation:drift1 28s ease-in-out infinite alternate}
+.orb-2{width:560px;height:560px;background:radial-gradient(circle at 60% 60%, #b14dff, transparent 70%);bottom:-240px;right:-160px;animation:drift2 32s ease-in-out infinite alternate}
+.orb-3{width:380px;height:380px;background:radial-gradient(circle at 50% 50%, #ff5fb8, transparent 70%);top:38%;left:48%;animation:drift3 24s ease-in-out infinite alternate}
+.orb-4{width:260px;height:260px;background:radial-gradient(circle at 50% 50%, #10ffa8, transparent 70%);top:62%;left:8%;animation:drift1 36s ease-in-out infinite alternate-reverse;opacity:.22}
+
+@keyframes drift1{0%{transform:translate(0,0) scale(1)}50%{transform:translate(80px,40px) scale(1.08)}100%{transform:translate(40px,80px) scale(1.05)}}
+@keyframes drift2{0%{transform:translate(0,0) scale(1.05)}100%{transform:translate(-70px,-50px) scale(1)}}
+@keyframes drift3{0%{transform:translate(-40px,-30px) scale(.92)}100%{transform:translate(60px,30px) scale(1.08)}}
+
+/* Star grid + scanline */
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse at center, black 0%, transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse at center, black 0%, transparent 75%);
+}
+.bg-noise{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* --- App container --- */
+.app{position:relative;z-index:2;max-width:1040px;margin:0 auto;padding:48px 24px 80px}
+
+/* --- Top status bar --- */
+.topbar{
+  position:relative;z-index:5;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:28px;
+}
+.gen-status{
+  display:inline-flex;align-items:stretch;gap:0;
+  padding:0;border-radius:999px;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  border:1px solid var(--border-strong);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  font-family:'Space Mono','JetBrains Mono',monospace;
+  font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+  overflow:hidden;
+  box-shadow:0 8px 30px -10px rgba(0,229,255,.25), inset 0 0 0 1px rgba(255,255,255,.03);
+}
+.gen-status .gs-cell{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:9px 16px;color:var(--text-dim);
+  border-right:1px solid var(--border);
+}
+.gen-status .gs-cell:last-child{border-right:none}
+.gen-status .gs-label{color:var(--muted);font-size:.62rem}
+.gen-status .gs-val{color:var(--text);font-weight:700}
+.gen-status .gs-state{color:var(--green-soft)}
+.gen-status .gs-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 10px var(--green), 0 0 20px rgba(16,255,168,.5);
+  animation:livepulse 1.8s ease-in-out infinite;
+  flex-shrink:0;
+}
+.gen-status[data-state="processing"] .gs-dot{background:var(--amber);box-shadow:0 0 10px var(--amber), 0 0 20px rgba(255,184,0,.5);animation-duration:.8s}
+.gen-status[data-state="processing"] .gs-state{color:var(--amber-soft)}
+.gen-status[data-state="done"] .gs-dot{background:var(--cyan);box-shadow:0 0 10px var(--cyan), 0 0 20px rgba(0,229,255,.5)}
+.gen-status[data-state="done"] .gs-state{color:var(--cyan-soft)}
+.gen-status[data-state="error"] .gs-dot{background:var(--red);box-shadow:0 0 10px var(--red), 0 0 20px rgba(255,77,109,.5)}
+.gen-status[data-state="error"] .gs-state{color:var(--red)}
+
+/* --- Header (abstract treatment) --- */
+.header{text-align:left;margin-bottom:36px;position:relative;padding:32px 36px;
+  border:1px solid var(--border);border-radius:28px;
+  background:
+    radial-gradient(800px 200px at 0% 0%, rgba(0,229,255,.08), transparent 60%),
+    radial-gradient(600px 200px at 100% 100%, rgba(177,77,255,.08), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.005));
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  overflow:hidden;
+}
+.header::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 40px);
+  mask-image:radial-gradient(ellipse at 50% 50%, black 0%, transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at 50% 50%, black 0%, transparent 80%);
+  opacity:.6;
+}
+.header::after{
+  content:"";position:absolute;right:-100px;top:-100px;
+  width:380px;height:380px;border-radius:50%;
+  background:radial-gradient(circle, rgba(0,229,255,.12), transparent 60%);
+  filter:blur(40px);pointer-events:none;
+}
+.header-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.brand{display:inline-flex;align-items:center;gap:18px;position:relative}
+.brand-mark{
+  width:64px;height:64px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.brand-mark svg{width:100%;height:100%;color:var(--cyan)}
+.brand-mark .rot-ring{position:absolute;inset:-4px;animation:rotSlow 24s linear infinite}
+@keyframes rotSlow{to{transform:rotate(360deg)}}
+.brand-text{display:flex;flex-direction:column;gap:8px;line-height:1}
+.logo{
+  font-family:'Unbounded','Space Grotesk',sans-serif;
+  font-size:2.4rem;font-weight:800;letter-spacing:-.04em;line-height:.88;
+  color:var(--text);
+  position:relative;
+  display:inline-flex;align-items:baseline;gap:.12em;
+}
+.logo .l-mono{
+  font-family:'Space Mono',monospace;
+  font-weight:400;font-size:.45em;letter-spacing:.18em;
+  color:var(--cyan);
+  align-self:center;
+  padding:4px 8px;border:1px solid rgba(0,229,255,.3);
+  border-radius:6px;background:rgba(0,229,255,.05);
+  text-transform:uppercase;
+}
+.logo .l-slash{color:var(--cyan);font-weight:300;opacity:.5;font-size:.85em}
+.logo .l-second{
+  font-family:'Space Mono',monospace;
+  font-weight:400;font-size:.42em;letter-spacing:.32em;
+  color:var(--text-dim);text-transform:uppercase;
+  align-self:center;
+}
+.tagline{
+  color:var(--muted);font-size:.7rem;font-family:'Space Mono',monospace;
+  letter-spacing:.22em;text-transform:uppercase;font-weight:400;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.tagline::before{
+  content:"⟨";color:var(--cyan);font-style:normal;font-size:1.2em;line-height:.5;opacity:.6;
+}
+.tagline::after{
+  content:"⟩";color:var(--purple);font-style:normal;font-size:1.2em;line-height:.5;opacity:.6;
+}
+.header-meta{
+  display:flex;flex-direction:column;align-items:flex-end;gap:6px;
+  font-family:'Space Mono',monospace;font-size:.68rem;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+}
+.header-meta .hm-row{display:flex;align-items:center;gap:8px}
+.header-meta .hm-row strong{color:var(--cyan-soft);font-weight:400}
+.header-meta .hm-ticks{
+  display:flex;gap:3px;margin-top:2px;
+}
+.header-meta .hm-ticks span{
+  display:block;width:3px;height:14px;background:rgba(255,255,255,.08);border-radius:1px;
+}
+.header-meta .hm-ticks span.on{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+@keyframes livepulse{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+
+/* --- Audio pipeline flow --- */
+.pipeline{
+  position:relative;
+  margin:28px 0 36px;
+  padding:22px 28px;
+  border-radius:22px;
+  background:linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  border:1px solid var(--border);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  overflow:hidden;
+}
+.pipeline::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 0% 50%, rgba(0,229,255,.06), transparent 40%),
+    radial-gradient(circle at 100% 50%, rgba(177,77,255,.06), transparent 40%);
+  pointer-events:none;
+}
+.pipeline-label{
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:14px;
+}
+.pipeline-label .sig{display:inline-flex;align-items:center;gap:8px;color:var(--cyan-soft)}
+.pipeline-label .sig::before{
+  content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan);animation:livepulse 1.8s ease-in-out infinite;
+}
+.flow{
+  display:flex;align-items:stretch;justify-content:center;gap:0;
+  flex-wrap:wrap;position:relative;
+}
+.flow-block{
+  flex:1;min-width:140px;
+  padding:14px 16px;border-radius:14px;
+  background:rgba(255,255,255,.025);
+  border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  text-align:center;position:relative;
+  transition:transform .2s, box-shadow .3s, border-color .3s;
+}
+.flow-block:hover{transform:translateY(-2px)}
+.flow-icon{
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+}
+.flow-icon svg{width:18px;height:18px}
+.fb-name{font-family:'Space Grotesk',sans-serif;font-size:.84rem;font-weight:600;color:var(--text)}
+.fb-sub{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.fb-cyan{border-color:rgba(0,229,255,.35);background:rgba(0,229,255,.06);box-shadow:0 0 0 1px rgba(0,229,255,.05) inset, 0 8px 28px -12px rgba(0,229,255,.5)}
+.fb-cyan .flow-icon{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.4);color:var(--cyan)}
+.fb-cyan:hover{border-color:rgba(0,229,255,.6);box-shadow:var(--glow-cyan)}
+
+.fb-muted .flow-icon{color:var(--text-dim)}
+.fb-muted .fb-name{color:var(--text-dim);font-weight:500}
+
+.flow-arrow{
+  display:flex;align-items:center;justify-content:center;
+  width:46px;flex-shrink:0;color:var(--muted);position:relative;
+}
+.flow-arrow svg{width:100%;height:18px;overflow:visible}
+.flow-arrow .stream{
+  stroke:url(#streamGrad);stroke-width:1.5;fill:none;
+  stroke-dasharray:4 4;animation:streamFlow 1.4s linear infinite;
+}
+@keyframes streamFlow{to{stroke-dashoffset:-16}}
+
+/* --- Block cards (glass) --- */
+.block-card,.card{
+  position:relative;
+  border-radius:22px;
+  padding:26px 28px;
+  background:linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.012));
+  border:1px solid var(--border);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  margin-bottom:18px;
+  transition:border-color .35s, box-shadow .35s, transform .2s;
+  overflow:hidden;
+}
+.block-card::before,.card::before{
+  content:"";position:absolute;inset:0;border-radius:22px;pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), transparent 30%);
+  opacity:.6;
+}
+.block-card::after{
+  content:"";position:absolute;inset:-1px;border-radius:22px;pointer-events:none;
+  padding:1px;
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 40%);
+  -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:.7;
+}
+.block-card:hover{border-color:var(--border-strong)}
+
+.block-main{
+  background:
+    radial-gradient(800px 200px at 0% 0%, rgba(0,229,255,.08), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.01));
+  border-color:rgba(0,229,255,.18);
+}
+.block-main:hover{box-shadow:0 0 0 1px rgba(0,229,255,.25), 0 20px 60px -20px rgba(0,229,255,.25)}
+
+/* Card headers */
+.block-header{display:flex;align-items:center;gap:14px;margin-bottom:8px;position:relative;z-index:1}
+.block-num{
+  width:34px;height:34px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;flex-shrink:0;
+  position:relative;
+}
+.num-cyan{background:rgba(0,229,255,.12);color:var(--cyan);border:1px solid rgba(0,229,255,.35);box-shadow:0 0 16px rgba(0,229,255,.2), inset 0 0 12px rgba(0,229,255,.15)}
+.block-title{font-family:'Space Grotesk',sans-serif;font-size:1.08rem;font-weight:600;letter-spacing:-.005em;color:var(--text)}
+.block-badge{
+  margin-left:auto;padding:5px 11px;border-radius:999px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.badge-multi{background:rgba(0,229,255,.08);color:var(--cyan);border:1px solid rgba(0,229,255,.3);box-shadow:0 0 16px rgba(0,229,255,.12)}
+.badge-multi::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);animation:livepulse 1.6s ease-in-out infinite}
+
+.block-desc{
+  font-size:.82rem;color:var(--text-dim);margin:0 0 16px 48px;
+  line-height:1.55;position:relative;z-index:1;
+}
+
+/* Lang selector inline */
+.lang-sel{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.lang-sel label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.66rem;color:var(--muted);white-space:nowrap;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.lang-sel .sel-wrap{min-width:220px;flex:0 0 auto}
+.lang-sel select{padding:8px 36px 8px 14px;font-size:.82rem}
+
+/* --- Textarea --- */
+.ta-wrap{position:relative;border-radius:14px}
+.ta-wrap::before{
+  content:"";position:absolute;inset:-1px;border-radius:15px;pointer-events:none;
+  background:linear-gradient(135deg, var(--cyan), var(--purple), var(--pink));
+  opacity:0;transition:opacity .35s;z-index:0;
+  filter:blur(8px);
+}
+.ta-wrap:focus-within::before{opacity:.6}
+.ta-wrap::after{
+  content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  background:linear-gradient(135deg, var(--cyan), var(--purple) 50%, var(--pink));
+  opacity:0;transition:opacity .25s;z-index:1;
+  padding:1.5px;
+  -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+.ta-wrap:focus-within::after{opacity:1}
+textarea{
+  width:100%;position:relative;z-index:2;
+  background:rgba(8,10,30,.55);
+  border:1px solid var(--border);border-radius:14px;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:.94rem;
+  padding:16px 18px;resize:vertical;outline:none;
+  transition:border-color .2s, background .2s;
+  line-height:1.7;
+  backdrop-filter:blur(10px);
+}
+textarea:focus{border-color:transparent;background:rgba(8,10,30,.7)}
+textarea::placeholder{color:var(--muted);font-style:italic}
+
+.info-row{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:12px;font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);letter-spacing:.06em;
+}
+.info-row #count-main::before{content:"◆ ";color:var(--cyan-soft);opacity:.5}
+.info-row #dur-main{color:var(--cyan-soft)}
+.info-row #dur-main::before{content:"⏱ ";opacity:.6}
+
+.lang-preview{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;min-height:24px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:999px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;font-weight:500;letter-spacing:.08em;
+  border:1px solid;animation:chipIn .35s cubic-bezier(.5,1.5,.4,1);
+}
+.chip-uk{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.35);color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.18)}
+.chip-ru{background:rgba(177,77,255,.08);border-color:rgba(177,77,255,.35);color:var(--purple-soft);box-shadow:0 0 12px rgba(177,77,255,.18)}
+.chip-en{background:rgba(16,255,168,.08);border-color:rgba(16,255,168,.35);color:var(--green-soft);box-shadow:0 0 12px rgba(16,255,168,.18)}
+@keyframes chipIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
+
+/* --- Card titles --- */
+.card-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.7rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:20px;
+  display:flex;align-items:center;gap:12px;
+}
+.card-title::before{
+  content:"";width:18px;height:1px;
+  background:linear-gradient(90deg, var(--cyan), transparent);
+}
+.card-title .ct-icon{
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);
+  display:inline-flex;align-items:center;justify-content:center;color:var(--cyan);
+  margin-right:-4px;
+}
+.card-title .ct-icon svg{width:14px;height:14px}
+
+/* --- Voice grid --- */
+.voice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.lang-group label{
+  display:flex;align-items:center;gap:8px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:9px;
+}
+.flag{
+  width:18px;height:14px;border-radius:3px;display:inline-block;
+  background-size:cover;background-position:center;
+  box-shadow:0 0 0 1px rgba(255,255,255,.1);
+  flex-shrink:0;
+}
+.flag-uk{background:linear-gradient(180deg, #005bbb 50%, #ffd500 50%)}
+.flag-ru{background:linear-gradient(180deg, #fff 33%, #0039a6 33% 66%, #d52b1e 66%)}
+.flag-en{background:linear-gradient(180deg, #012169 0%, #012169 100%);position:relative}
+.flag-en::before,.flag-en::after{content:"";position:absolute;inset:0;background:linear-gradient(45deg, transparent 45%, #fff 47% 53%, transparent 55%)}
+.flag-en::after{transform:scaleX(-1)}
+
+/* --- Custom select --- */
+.sel-wrap{position:relative;display:block;width:100%}
+.sel-wrap::after{
+  content:"";position:absolute;right:14px;top:50%;
+  width:8px;height:8px;border-right:1.5px solid var(--text-dim);border-bottom:1.5px solid var(--text-dim);
+  transform:translateY(-70%) rotate(45deg);pointer-events:none;
+  transition:border-color .2s;
+}
+.sel-wrap:hover::after{border-color:var(--cyan)}
+
+select{
+  width:100%;background:rgba(8,10,30,.55);
+  border:1px solid var(--border);border-radius:12px;
+  color:var(--text);padding:11px 38px 11px 14px;
+  font-family:'Inter',sans-serif;font-size:.88rem;
+  outline:none;cursor:pointer;
+  transition:border-color .2s, background .2s, box-shadow .2s;
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  backdrop-filter:blur(8px);
+}
+select:hover{border-color:var(--border-strong);background:rgba(8,10,30,.75)}
+select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.12), 0 0 18px rgba(0,229,255,.18)}
+select option{background:#06061a;color:var(--text);padding:8px}
+
+/* --- Param sliders --- */
+.params{display:grid;grid-template-columns:1fr 1fr;gap:22px 24px}
+.param{display:flex;flex-direction:column;gap:10px}
+.param label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:'Inter',sans-serif;font-size:.82rem;color:var(--text-dim);
+  letter-spacing:.01em;
+}
+.param label .v{
+  font-family:'JetBrains Mono',monospace;font-size:.78rem;
+  color:var(--cyan);font-weight:600;
+  text-shadow:0 0 12px rgba(0,229,255,.5);
+  padding:2px 8px;border-radius:6px;
+  background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);
+}
+
+input[type=range]{
+  width:100%;height:24px;
+  background:transparent;
+  outline:none;border:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  --pct:50%;
+}
+/* Track via gradient on the input background */
+input[type=range]{
+  background:
+    linear-gradient(90deg,
+      var(--cyan) 0%, var(--purple) var(--pct),
+      rgba(255,255,255,.06) var(--pct), rgba(255,255,255,.06) 100%);
+  background-clip:content-box;
+  padding:11px 0;
+  background-size:100% 4px;
+  background-repeat:no-repeat;
+  background-position:0 center;
+  border-radius:2px;
+}
+/* WebKit */
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:transparent;border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;
+  width:18px;height:18px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #fff, var(--cyan) 60%);
+  border:1.5px solid rgba(255,255,255,.7);
+  box-shadow:0 0 0 4px rgba(0,229,255,.12), 0 0 14px rgba(0,229,255,.7);
+  cursor:pointer;transition:transform .15s, box-shadow .2s;
+  margin-top:-7px;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.18);box-shadow:0 0 0 6px rgba(0,229,255,.18), 0 0 22px rgba(0,229,255,.9)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.1)}
+/* Firefox */
+input[type=range]::-moz-range-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;border:none}
+input[type=range]::-moz-range-progress{height:4px;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px}
+input[type=range]::-moz-range-thumb{
+  width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #fff, var(--cyan) 60%);
+  border:1.5px solid rgba(255,255,255,.7);
+  box-shadow:0 0 0 4px rgba(0,229,255,.12), 0 0 14px rgba(0,229,255,.7);
+  cursor:pointer;
+}
+
+/* Divider between param groups */
+.param-section{
+  margin-top:22px;padding-top:22px;
+  border-top:1px dashed var(--border);
+  display:grid;grid-template-columns:1fr 1fr;gap:22px 24px;
+  position:relative;
+}
+.param-section::before{
+  content:"";position:absolute;left:0;top:-1px;width:60px;height:1px;
+  background:linear-gradient(90deg, var(--cyan), transparent);
+}
+
+.section-label{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:10px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);margin:-6px 0 -2px;
+}
+.section-label .sl-icon{
+  width:22px;height:22px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--text-dim);
+}
+.section-label .sl-icon svg{width:12px;height:12px}
+
+.lg-label{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:.88rem;font-weight:500;color:var(--text);
+  letter-spacing:.005em;margin-bottom:9px;
+  text-transform:none;letter-spacing:normal;
+}
+
+/* --- Notch EQ premium row --- */
+#notch-row{
+  margin-top:22px;
+  padding:18px 20px;
+  border-radius:16px;
+  background:
+    radial-gradient(400px 80px at 20% 50%, rgba(255,184,0,.10), transparent 70%),
+    linear-gradient(180deg, rgba(255,184,0,.04), rgba(255,184,0,.015));
+  border:1px solid rgba(255,184,0,.32);
+  display:flex;align-items:center;gap:18px;
+  position:relative;overflow:hidden;
+  transition:opacity .3s, box-shadow .3s;
+  box-shadow:0 0 0 1px rgba(255,184,0,.08) inset, 0 12px 40px -20px rgba(255,184,0,.4);
+}
+#notch-row::before{
+  content:"";position:absolute;inset:-1px;border-radius:16px;padding:1px;
+  background:linear-gradient(135deg, rgba(255,184,0,.5), rgba(255,184,0,0) 50%, rgba(255,184,0,.4));
+  -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+}
+.notch-icon{
+  width:54px;height:54px;border-radius:14px;flex-shrink:0;
+  background:
+    radial-gradient(circle at 50% 100%, rgba(255,184,0,.18), transparent 70%),
+    linear-gradient(180deg, rgba(255,184,0,.06), rgba(255,184,0,.02));
+  border:1px solid rgba(255,184,0,.4);
+  color:var(--amber);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 0 18px rgba(255,184,0,.18), 0 0 22px rgba(255,184,0,.22);
+  position:relative;
+}
+.notch-icon::after{
+  content:"";position:absolute;inset:-1px;border-radius:14px;padding:1px;pointer-events:none;
+  background:conic-gradient(from 220deg, rgba(255,184,0,.6), transparent 30%, transparent 70%, rgba(255,184,0,.6));
+  -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+.notch-icon svg{width:34px;height:34px}
+.notch-body{flex:1;min-width:0}
+.notch-head{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.notch-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:.92rem;font-weight:600;color:var(--amber-soft);
+  letter-spacing:.005em;
+}
+.notch-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;
+  background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.35);
+  color:var(--amber-soft);
+}
+#notch-desc{
+  font-size:.76rem;color:var(--text-dim);line-height:1.55;
+  font-family:'Inter',sans-serif;
+}
+#notch-desc strong{font-family:'JetBrains Mono',monospace;font-weight:600}
+#notch-desc em{color:var(--muted);font-style:italic;font-size:.92em}
+
+/* --- Toggle switch --- */
+.switch{
+  position:relative;display:inline-block;
+  width:46px;height:24px;flex-shrink:0;
+}
+.switch input{opacity:0;width:0;height:0}
+.slider{
+  position:absolute;cursor:pointer;inset:0;
+  background:rgba(255,255,255,.05);
+  transition:.35s cubic-bezier(.4,1.2,.5,1);
+  border-radius:999px;
+  border:1px solid var(--border);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.4);
+}
+.slider::before{
+  position:absolute;content:"";
+  height:16px;width:16px;left:3px;top:50%;transform:translateY(-50%);
+  background:linear-gradient(180deg, #fff, #c5cbdc);
+  transition:.35s cubic-bezier(.4,1.2,.5,1);
+  border-radius:50%;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.switch:hover .slider{border-color:var(--border-strong)}
+
+/* Amber tone for notch toggle */
+#notch-row .switch input:checked + .slider{
+  background:linear-gradient(135deg, rgba(255,184,0,.35), rgba(255,184,0,.5));
+  border-color:var(--amber);
+  box-shadow:0 0 16px rgba(255,184,0,.5), inset 0 0 8px rgba(255,184,0,.3);
+}
+#notch-row .switch input:checked + .slider::before{
+  transform:translate(22px,-50%);
+  background:radial-gradient(circle at 30% 30%, #fff, #ffd56b 60%);
+  box-shadow:0 0 14px rgba(255,184,0,.9);
+}
+
+/* Generic green toggle (legacy compat) */
+.switch input:checked + .slider{
+  background:linear-gradient(135deg, rgba(16,255,168,.3), rgba(16,255,168,.45));
+  border-color:var(--green);
+  box-shadow:0 0 16px rgba(16,255,168,.4), inset 0 0 8px rgba(16,255,168,.3);
+}
+.switch input:checked + .slider::before{
+  transform:translate(22px,-50%);
+  background:radial-gradient(circle at 30% 30%, #fff, var(--green-soft) 60%);
+  box-shadow:0 0 14px rgba(16,255,168,.7);
+}
+
+/* --- Generate button --- */
+.btn-zone{
+  position:relative;margin-top:24px;
+  padding:2px;border-radius:18px;
+  background:linear-gradient(135deg, var(--cyan), var(--purple), var(--pink), var(--cyan));
+  background-size:300% 300%;
+  animation:gradientShift 8s ease infinite;
+}
+@keyframes gradientShift{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+.btn-generate{
+  width:100%;padding:20px;border-radius:16px;border:none;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:1.12rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  background:linear-gradient(135deg, #06061a, #0a0a22);
+  color:#fff;
+  transition:transform .15s, background .25s, box-shadow .3s;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  position:relative;overflow:hidden;
+}
+.btn-generate::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(135deg, rgba(0,229,255,.2), rgba(177,77,255,.2));
+  opacity:0;transition:opacity .3s;
+}
+.btn-generate::after{
+  content:"";position:absolute;top:-50%;left:-100%;
+  width:80px;height:200%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+  transform:skewX(-25deg);
+  transition:left .8s ease;
+}
+.btn-generate:hover:not(:disabled){transform:translateY(-1px)}
+.btn-generate:hover:not(:disabled)::before{opacity:1}
+.btn-generate:hover:not(:disabled)::after{left:120%}
+.btn-zone:has(.btn-generate:hover:not(:disabled)){
+  box-shadow:0 0 40px rgba(0,229,255,.5), 0 0 80px rgba(177,77,255,.3);
+}
+.btn-generate:disabled{opacity:.55;cursor:not-allowed;background:linear-gradient(135deg, #0a0a22, #0a0a22)}
+.btn-generate > span{position:relative;z-index:2}
+.btn-generate .bg-icon{
+  position:relative;z-index:2;width:22px;height:22px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.btn-generate .bg-icon svg{width:22px;height:22px}
+
+/* --- Progress --- */
+.progress-wrap{display:none;margin-top:26px;
+  padding:22px 24px;border-radius:18px;
+  background:linear-gradient(180deg, rgba(0,229,255,.04), rgba(177,77,255,.04));
+  border:1px solid rgba(0,229,255,.18);
+  position:relative;overflow:hidden;
+}
+.progress-wrap::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(400px 100px at 50% 100%, rgba(0,229,255,.08), transparent 70%);
+  pointer-events:none;
+}
+.progress-label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--text-dim);
+  margin-bottom:14px;letter-spacing:.05em;position:relative;z-index:1;
+}
+#prog-pct{
+  color:var(--cyan);font-weight:700;font-size:1.1rem;
+  text-shadow:0 0 14px rgba(0,229,255,.6);
+}
+.progress-bar{
+  height:8px;background:rgba(255,255,255,.05);
+  border:1px solid var(--border);border-radius:999px;overflow:hidden;
+  position:relative;z-index:1;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.5);
+}
+.progress-fill{
+  height:100%;border-radius:999px;
+  background:linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
+  background-size:200% 100%;
+  transition:width .4s ease;width:0%;
+  box-shadow:0 0 14px rgba(0,229,255,.6), 0 0 28px rgba(0,229,255,.3);
+  position:relative;
+  animation:fillSheen 2.4s linear infinite;
+}
+@keyframes fillSheen{from{background-position:0% 50%}to{background-position:200% 50%}}
+.progress-fill::after{
+  content:"";position:absolute;top:0;right:0;width:30px;height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.6));
+  border-radius:999px;
+  animation:sheen 1.6s ease-in-out infinite;
+}
+@keyframes sheen{0%,100%{opacity:.4}50%{opacity:1}}
+.status-text{
+  text-align:center;font-family:'JetBrains Mono',monospace;
+  font-size:.8rem;color:var(--text-dim);margin-top:14px;
+  position:relative;z-index:1;
+  letter-spacing:.04em;
+}
+
+/* --- Download buttons --- */
+.download-wrap{
+  display:none;justify-content:center;gap:18px;flex-wrap:wrap;
+  margin-top:24px;animation:dropIn .5s cubic-bezier(.5,1.4,.4,1);
+}
+@keyframes dropIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.btn-download{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:16px 28px;border-radius:14px;
+  background:rgba(16,255,168,.10);border:1px solid rgba(16,255,168,.4);
+  color:var(--green-soft);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:.98rem;font-weight:600;letter-spacing:.01em;
+  text-decoration:none;
+  transition:all .25s;
+  position:relative;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(16,255,168,.05) inset, 0 8px 28px -10px rgba(16,255,168,.4);
+}
+.btn-download::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(135deg, rgba(16,255,168,.2), transparent);
+  opacity:0;transition:opacity .25s;
+}
+.btn-download:hover{
+  background:rgba(16,255,168,.18);
+  transform:translateY(-2px);
+  box-shadow:0 0 24px rgba(16,255,168,.4), 0 0 48px rgba(16,255,168,.2);
+}
+.btn-download:hover::before{opacity:1}
+.btn-download .dl-icon{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:rgba(16,255,168,.15);border:1px solid rgba(16,255,168,.35);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;
+}
+.btn-download .dl-icon svg{width:18px;height:18px}
+.btn-download .dl-text{
+  display:flex;flex-direction:column;gap:2px;text-align:left;
+  position:relative;z-index:1;
+}
+.btn-download .dl-label{font-size:.62rem;font-family:'JetBrains Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:currentColor;opacity:.7}
+.btn-download .dl-main{font-size:.95rem;line-height:1}
+
+/* Raw voice variant — cyan */
+#dl-raw-link{
+  background:rgba(0,229,255,.10) !important;
+  border-color:rgba(0,229,255,.4) !important;
+  color:var(--cyan-soft) !important;
+  box-shadow:0 0 0 1px rgba(0,229,255,.05) inset, 0 8px 28px -10px rgba(0,229,255,.4) !important;
+}
+#dl-raw-link:hover{
+  background:rgba(0,229,255,.18) !important;
+  box-shadow:0 0 24px rgba(0,229,255,.4), 0 0 48px rgba(0,229,255,.2) !important;
+}
+#dl-raw-link .dl-icon{background:rgba(0,229,255,.15);border-color:rgba(0,229,255,.35)}
+
+.error-text{
+  color:var(--red);font-family:'JetBrains Mono',monospace;
+  font-size:.84rem;text-align:center;margin-top:16px;display:none;
+  padding:12px 16px;border-radius:12px;
+  background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.3);
+}
+
+/* --- Mobile --- */
+@media(max-width:760px){
+  .app{padding:32px 16px 60px}
+  .logo{font-size:1.85rem}
+  .brand-mark{width:54px;height:54px}
+  .header{padding:22px 20px;border-radius:22px}
+  .header-meta{display:none}
+  .logo{font-size:1.7rem;flex-wrap:wrap;gap:.3em}
+  .logo .l-mono,.logo .l-second{font-size:.5em}
+  .topbar{margin-bottom:18px}
+  .gen-status{font-size:.6rem;flex-wrap:wrap;justify-content:center;border-radius:18px}
+  .gen-status .gs-cell{padding:7px 12px}
+  .tagline{font-size:.66rem;letter-spacing:.2em}
+  .tagline::before,.tagline::after{width:20px}
+  .block-card,.card{padding:22px 18px;border-radius:18px}
+  .block-card::before,.card::before{border-radius:18px}
+  .block-card::after{border-radius:18px}
+  .block-desc{margin-left:46px;font-size:.78rem}
+  .voice-grid,.params,.param-section{grid-template-columns:1fr;gap:18px}
+  .pipeline{padding:18px 16px}
+  .flow{gap:6px}
+  .flow-arrow{width:28px}
+  .flow-block{min-width:90px;padding:10px 8px}
+  .fb-name{font-size:.76rem}
+  .fb-sub{display:none}
+  .flow-icon{width:32px;height:32px}
+  #notch-row{flex-direction:column;align-items:flex-start;gap:12px;padding:16px}
+  .notch-icon{width:38px;height:38px}
+  .btn-generate{font-size:.95rem;padding:18px}
+  .btn-download{padding:14px 18px;width:100%;justify-content:flex-start}
+  .download-wrap{flex-direction:column}
+  .lang-sel .sel-wrap{width:100%;min-width:0}
+}
+
+/* Tweaks panel hook (only visible when host activates) */
+#tweaks-panel{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  width:260px;padding:16px;border-radius:14px;
+  background:rgba(8,10,30,.85);backdrop-filter:blur(20px);
+  border:1px solid var(--border-strong);
+  box-shadow:0 20px 60px -20px rgba(0,229,255,.4);
+  display:none;font-size:.78rem;
+}
+#tweaks-panel h4{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px}
+#tweaks-panel .swatches{display:flex;gap:8px;flex-wrap:wrap}
+#tweaks-panel .sw{
+  width:34px;height:34px;border-radius:10px;cursor:pointer;border:2px solid transparent;
+  transition:transform .15s, border-color .15s;
+}
+#tweaks-panel .sw:hover{transform:scale(1.1)}
+#tweaks-panel .sw.active{border-color:#fff}
+</style>
+</head>
+<body>
+
+<!-- Cosmic backdrop -->
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+</div>
+<div class="bg-grid"></div>
+<div class="bg-noise"></div>
+
+<!-- Shared SVG defs -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="streamGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00e5ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#b14dff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="app">
+  <!-- TOP STATUS BAR -->
+  <div class="topbar">
+    <div class="gen-status" id="gen-status" data-state="idle">
+      <span class="gs-cell"><span class="gs-dot"></span><span class="gs-state" id="gs-state">Готовий до генерації</span></span>
+      <span class="gs-cell"><span class="gs-label">engine</span><span class="gs-val" id="gs-engine">NCS · v2.6</span></span>
+      <span class="gs-cell"><span class="gs-label">channel</span><span class="gs-val" id="gs-channel">48 kHz · stereo</span></span>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <!-- Abstract spectral mark: orbit + waveform notch -->
+          <svg class="rot-ring" viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width=".7" opacity=".4">
+            <circle cx="36" cy="36" r="32" stroke-dasharray="2 6"/>
+          </svg>
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <defs>
+              <linearGradient id="brandG" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#00e5ff"/>
+                <stop offset="100%" stop-color="#b14dff"/>
+              </linearGradient>
+            </defs>
+            <circle cx="32" cy="32" r="22" stroke="url(#brandG)" stroke-width="1.4" opacity=".5"/>
+            <circle cx="32" cy="32" r="14" stroke="url(#brandG)" stroke-width="1.2" opacity=".7"/>
+            <path d="M10 32 Q 18 32 22 22 T 32 32 T 42 42 T 54 32" stroke="url(#brandG)" stroke-width="2"/>
+            <circle cx="32" cy="32" r="3" fill="url(#brandG)" stroke="none"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="logo">
+            <span class="l-mono">NCS</span>
+            <span>Neurocode</span>
+            <span class="l-slash">/</span>
+            <span class="l-second">studio</span>
+          </div>
+          <div class="tagline">psychoacoustic · affirmation engine</div>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="hm-row"><span>build</span><strong>2026.05 · ∆</strong></div>
+        <div class="hm-row"><span>capacity</span><strong>nominal</strong></div>
+        <div class="hm-ticks" aria-hidden="true">
+          <span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- AUDIO PIPELINE -->
+  <section class="pipeline" aria-label="Audio pipeline">
+    <div class="pipeline-label">
+      <span>// Audio pipeline · 03 stages</span>
+      <span class="sig">AM modulation chain</span>
+    </div>
+    <div class="flow">
+      <div class="flow-block fb-muted" title="Початкова пауза">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h2 M19 12h2 M12 5v2 M12 17v2"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="fb-name">Пауза</div>
+        <div class="fb-sub">intro silence</div>
+      </div>
+
+      <div class="flow-arrow"><svg viewBox="0 0 60 20" preserveAspectRatio="none"><line class="stream" x1="0" y1="10" x2="60" y2="10"/></svg></div>
+
+      <div class="flow-block fb-cyan" title="Багатопотокова AM-модуляція">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0"/>
+            <circle cx="12" cy="12" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="fb-name">Афірмації</div>
+        <div class="fb-sub">multi-layer · AM</div>
+      </div>
+
+      <div class="flow-arrow"><svg viewBox="0 0 60 20" preserveAspectRatio="none"><line class="stream" x1="0" y1="10" x2="60" y2="10"/></svg></div>
+
+      <div class="flow-block fb-muted" title="Завершальна пауза">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="6" width="4" height="12" rx="1"/>
+            <rect x="14" y="6" width="4" height="12" rx="1"/>
+          </svg>
+        </div>
+        <div class="fb-name">Пауза</div>
+        <div class="fb-sub">outro silence</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOCK: MAIN TEXT -->
+  <div class="block-card block-main">
+    <div class="block-header">
+      <div class="block-num num-cyan">02</div>
+      <div class="block-title">Текст афірмацій</div>
+      <div class="block-badge badge-multi">Багатопотоковий</div>
+    </div>
+    <div class="block-desc">Кодування афірмацій — AM-модуляція по всьому спектру. Обов'язковий блок ядра генерації.</div>
+
+    <div class="block-content">
+      <div class="lang-sel">
+        <label>// Мова потоку</label>
+        <div class="sel-wrap">
+          <select id="lang-main" onchange="onInput('main')">
+            <option value="auto" selected>Auto · автодетект за текстом</option>
+            <option value="ru">🇷🇺 Російська</option>
+            <option value="uk">🇺🇦 Українська</option>
+            <option value="en">🇬🇧 Англійська</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ta-wrap">
+        <textarea id="text-main" rows="10" oninput="onInput('main')"
+          placeholder="Я здоровий і сильний&#10;Моє тіло ідеально здорове&#10;Моё тело полно энергии&#10;I am confident and successful&#10;Я досягаю всіх своїх цілей&#10;Всесвіт підтримує мене..."></textarea>
+      </div>
+
+      <div class="info-row">
+        <span id="count-main">0 символів</span>
+        <span id="dur-main">—</span>
+      </div>
+      <div class="lang-preview" id="preview-main"></div>
+    </div>
+  </div>
+
+  <!-- VOICE CARD -->
+  <div class="card">
+    <div class="card-title">
+      <span class="ct-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="12" rx="3"/>
+          <path d="M5 11a7 7 0 0 0 14 0 M12 18v3"/>
+        </svg>
+      </span>
+      Голос для кожної мови
+    </div>
+    <div class="voice-grid">
+      <div class="lang-group">
+        <label><span class="flag flag-uk"></span>Українська</label>
+        <div class="sel-wrap">
+          <select id="voice-uk">
+            <option value="uk-UA-PolinaNeural">Поліна · жіночий</option>
+            <option value="uk-UA-OstapNeural">Остап · чоловічий</option>
+          </select>
+        </div>
+      </div>
+      <div class="lang-group">
+        <label><span class="flag flag-ru"></span>Російська</label>
+        <div class="sel-wrap">
+          <select id="voice-ru">
+            <option value="ru-RU-SvetlanaNeural">Світлана · жіночий</option>
+            <option value="ru-RU-DmitryNeural">Дмитро · чоловічий</option>
+          </select>
+        </div>
+      </div>
+      <div class="lang-group">
+        <label><span class="flag flag-en"></span>Англійська</label>
+        <div class="sel-wrap">
+          <select id="voice-en">
+            <option value="en-US-AriaNeural">Aria · female</option>
+            <option value="en-US-GuyNeural">Guy · male</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARAMS CARD -->
+  <div class="card">
+    <div class="card-title">
+      <span class="ct-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M4.93 19.07l1.41-1.41 M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </span>
+      Параметри кодування
+    </div>
+
+    <div class="params">
+      <div class="param">
+        <label>Кількість шарів <span class="v" id="lbl-layers">24</span></label>
+        <input type="range" id="layers" min="4" max="32" step="2" value="24" oninput="sync(this,'lbl-layers')"/>
+      </div>
+      <div class="param">
+        <label>Мін. прискорення (Блок 2) <span class="v" id="lbl-smin">3x</span></label>
+        <input type="range" id="speed-min" min="2" max="9" step="0.5" value="3" oninput="sync(this,'lbl-smin','x')"/>
+      </div>
+      <div class="param" style="grid-column:2">
+        <label>Макс. прискорення (Блок 2) <span class="v" id="lbl-smax">7x</span></label>
+        <input type="range" id="speed-max" min="3" max="10" step="0.5" value="7" oninput="sync(this,'lbl-smax','x')"/>
+      </div>
+    </div>
+
+    <!-- Silences -->
+    <div class="param-section">
+      <div class="section-label">
+        <span class="sl-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+        </span>
+        Тиша · ramping
+      </div>
+      <div class="param">
+        <label>Пауза на початку <span class="v" id="lbl-sil-start">0.0с</span></label>
+        <input type="range" id="sil-start" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-start','с')"/>
+      </div>
+      <div class="param">
+        <label>Пауза в кінці <span class="v" id="lbl-sil-end">0.0с</span></label>
+        <input type="range" id="sil-end" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-end','с')"/>
+      </div>
+    </div>
+
+    <!-- Background noise -->
+    <div class="param-section">
+      <div class="section-label">
+        <span class="sl-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-4 6 4 9 0s6 4 9 0"/></svg>
+        </span>
+        Ambient layer
+      </div>
+      <div class="lang-group">
+        <label class="lg-label">Фоновий шум</label>
+        <div class="sel-wrap">
+          <select id="noise-type">
+            <option value="none">— Вимкнено</option>
+            <option value="pink">Рожевий шум</option>
+            <option value="sea">Шум моря</option>
+            <option value="rain">Шум дощу</option>
+          </select>
+        </div>
+      </div>
+      <div class="param">
+        <label>Гучність шуму <span class="v" id="lbl-noise-vol">-12дБ</span></label>
+        <input type="range" id="noise-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-noise-vol','дБ')"/>
+      </div>
+    </div>
+
+    <!-- Binaural -->
+    <div class="param-section">
+      <div class="section-label">
+        <span class="sl-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 18 0v6a2 2 0 0 1-2 2h-1v-6h3 M3 18v-6h3v6H5a2 2 0 0 1-2-2"/></svg>
+        </span>
+        Binaural · brain-state
+      </div>
+      <div class="lang-group">
+        <label class="lg-label">Бінауральні ритми</label>
+        <div class="sel-wrap">
+          <select id="binaural-type">
+            <option value="none">— Вимкнено</option>
+            <option value="theta" selected>Тета · 4 Hz — Медитація</option>
+            <option value="alpha">Альфа · 10 Hz — Фокус</option>
+            <option value="delta">Дельта · 2 Hz — Сон / Регенерація</option>
+            <option value="beta">Бета · 15 Hz — Активність</option>
+          </select>
+        </div>
+      </div>
+      <div class="param">
+        <label>Гучність ритму <span class="v" id="lbl-binaural-vol">-12дБ</span></label>
+        <input type="range" id="binaural-volume" min="-30" max="-6" step="1" value="-12" oninput="sync(this,'lbl-binaural-vol','дБ')"/>
+      </div>
+    </div>
+
+    <!-- Music -->
+    <div class="param-section">
+      <div class="section-label">
+        <span class="sl-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </span>
+        Music bed
+      </div>
+      <div class="lang-group">
+        <label class="lg-label">Фонова музика</label>
+        <div class="sel-wrap">
+          <select id="music-type">
+            <option value="none">— Вимкнено</option>
+          </select>
+        </div>
+      </div>
+      <div class="param">
+        <label>Гучність музики <span class="v" id="lbl-music-vol">-12дБ</span></label>
+        <input type="range" id="music-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-music-vol','дБ')"/>
+      </div>
+    </div>
+
+    <!-- Notch EQ premium row -->
+    <div id="notch-row">
+      <div class="notch-icon" aria-hidden="true">
+        <!-- Abstract: frequency response curve with surgical notch carved out -->
+        <svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="notchG" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#ffb800" stop-opacity=".25"/>
+              <stop offset="50%" stop-color="#ffb800" stop-opacity=".05"/>
+              <stop offset="100%" stop-color="#ffb800" stop-opacity=".25"/>
+            </linearGradient>
+          </defs>
+          <!-- baseline grid ticks -->
+          <path d="M6 42 L50 42" stroke="currentColor" stroke-width=".8" opacity=".35"/>
+          <path d="M10 42 L10 44 M18 42 L18 44 M26 42 L26 44 M34 42 L34 44 M42 42 L42 44 M50 42 L50 44" stroke="currentColor" stroke-width=".8" opacity=".35"/>
+          <!-- response curve with notch carved at center -->
+          <path d="M6 28 Q 14 26 18 26 Q 24 26 26 30 L 28 40 L 30 30 Q 32 26 38 26 Q 46 26 50 28" fill="url(#notchG)" stroke="currentColor" stroke-width="1.8"/>
+          <!-- center notch marker -->
+          <path d="M28 18 L28 24" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="28" cy="15" r="2.2" fill="currentColor"/>
+          <!-- side frequency dots -->
+          <circle cx="14" cy="26" r="1.4" fill="currentColor" opacity=".7"/>
+          <circle cx="42" cy="26" r="1.4" fill="currentColor" opacity=".7"/>
+        </svg>
+      </div>
+      <div class="notch-body">
+        <div class="notch-head">
+          <div class="notch-title">Хірургічний Notch EQ</div>
+          <div class="notch-tag">Pro · Q=30</div>
+        </div>
+        <div id="notch-desc">Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. Активно лише при бінауральному ритмі + музиці.</div>
+      </div>
+      <label class="switch" title="Notch EQ">
+        <input type="checkbox" id="notch-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- GENERATE -->
+  <div class="btn-zone">
+    <button class="btn-generate" id="btn-gen" onclick="generate()">
+      <span class="bg-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2 L4 14 H12 L11 22 L20 10 H12 Z" fill="currentColor"/>
+        </svg>
+      </span>
+      <span>Генерувати WAV</span>
+    </button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="progress-label"><span id="prog-stage">Обробка...</span><span id="prog-pct">0%</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="status-text" id="status-txt">Підготовка...</div>
+  </div>
+
+  <div class="error-text" id="err-txt"></div>
+
+  <!-- DOWNLOADS -->
+  <div class="download-wrap" id="dl-wrap">
+    <a class="btn-download" id="dl-link" href="#" download>
+      <span class="dl-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v14 M6 13l6 6 6-6 M5 21h14"/>
+        </svg>
+      </span>
+      <span class="dl-text">
+        <span class="dl-label">Result · encoded</span>
+        <span class="dl-main">Завантажити кодований WAV</span>
+      </span>
+    </a>
+    <a class="btn-download" id="dl-raw-link" href="#" download>
+      <span class="dl-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v14 M6 13l6 6 6-6 M5 21h14"/>
+        </svg>
+      </span>
+      <span class="dl-text">
+        <span class="dl-label">Source · raw voice</span>
+        <span class="dl-main">Завантажити ісходний голос</span>
+      </span>
+    </a>
+  </div>
+</div>
+
+<!-- Optional tweaks panel (host-controlled) -->
+<div id="tweaks-panel">
+  <h4>Accent palette</h4>
+  <div class="swatches">
+    <div class="sw active" data-acc="cyan" style="background:linear-gradient(135deg,#00e5ff,#b14dff)"></div>
+    <div class="sw" data-acc="green" style="background:linear-gradient(135deg,#10ffa8,#22d3ee)"></div>
+    <div class="sw" data-acc="pink" style="background:linear-gradient(135deg,#ff5fb8,#ffb800)"></div>
+    <div class="sw" data-acc="ice" style="background:linear-gradient(135deg,#a5f3fc,#818cf8)"></div>
+  </div>
+</div>
+
+<script>
+let pollTimer = null;
+const CPS = 14;
+
+function detectLang(t) {
+  const lo = t.toLowerCase();
+  const lat = (lo.match(/[a-z]/g)||[]).length;
+  const cyr = (lo.match(/[\u0400-\u04FF]/g)||[]).length;
+  if (lat > cyr && lat > 0) return 'en';
+  
+  const uk_m = (lo.match(/[їієґ]/g)||[]).length;
+  const ru_m = (lo.match(/[ыъэё]/g)||[]).length;
+  
+  if (uk_m > ru_m) return 'uk';
+  if (ru_m > uk_m) return 'ru';
+  
+  // Ambiguous
+  if (lo.includes('и') && !lo.includes('і')) return 'ru';
+  if (lo.includes('і') && !lo.includes('и')) return 'uk';
+  
+  return 'ru';
+}
+
+function getSegments(text, forcedLang) {
+  const parts = text.trim().split(/(?<=[.!?\n])\s+|\n+/).filter(s=>s.trim());
+  const segs = [];
+  parts.forEach(s => {
+    const lang = (forcedLang && forcedLang !== 'auto') ? forcedLang : detectLang(s);
+    if (segs.length && segs[segs.length-1].lang === lang) segs[segs.length-1].t += ' '+s;
+    else segs.push({lang, t:s});
+  });
+  return segs;
+}
+
+const LL = {uk:'🇺🇦 УКР', ru:'🇷🇺 РОС', en:'🇬🇧 ENG'};
+const CC = {uk:'chip-uk', ru:'chip-ru', en:'chip-en'};
+
+function onInput(id) {
+  const text = document.getElementById('text-'+id).value;
+  const forced = document.getElementById('lang-'+id).value;
+  document.getElementById('count-'+id).textContent = text.length + ' символів';
+  const est = text.trim().length > 0 ? Math.max(2, Math.round(text.trim().length / CPS)) : 0;
+  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}с` : '—';
+  
+  const preview = document.getElementById('preview-'+id);
+  if (!preview) return;
+  const segs = text.trim() ? getSegments(text, forced) : [];
+  preview.innerHTML = segs.map(s => `<span class="chip ${CC[s.lang]}">${LL[s.lang]}</span>`).join('');
+}
+
+function sync(el, lbl, sfx='') {
+  document.getElementById(lbl).textContent = el.value + sfx;
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+async function loadMusicTracks() {
+  const sel = document.getElementById('music-type');
+  try {
+    const tracks = await fetch('/music_tracks').then(r => r.json());
+    sel.innerHTML = '<option value="none">— Вимкнено</option>';
+    if (tracks.length === 0) {
+      const opt = document.createElement('option');
+      opt.disabled = true;
+      opt.textContent = '— Немає аудіофайлів в engine/music/';
+      sel.appendChild(opt);
+    } else {
+      tracks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.label;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {
+    console.warn('Could not load music tracks:', e);
+  }
+}
+loadMusicTracks();
+
+['layers','speed-min','speed-max','sil-start','sil-end','noise-volume','binaural-volume','music-volume'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.style.setProperty('--pct', ((el.value-el.min)/(el.max-el.min)*100)+'%');
+});
+
+const BINAURAL_FREQS = {
+  delta: { l: 136.1, r: 138.1, label: 'Дельта (2 Гц)' },
+  theta: { l: 136.1, r: 140.1, label: 'Тета (4 Гц)' },
+  alpha: { l: 136.1, r: 146.1, label: 'Альфа (10 Гц)' },
+  beta:  { l: 136.1, r: 151.1, label: 'Бета (15 Гц)' },
+};
+
+function updateNotchDesc() {
+  const type = document.getElementById('binaural-type').value;
+  const desc = document.getElementById('notch-desc');
+  if (!desc) return;
+  if (type === 'none' || !BINAURAL_FREQS[type]) {
+    desc.innerHTML = 'Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. <em>Оберіть бінауральний ритм, щоб побачити конкретні частоти.</em>';
+  } else {
+    const f = BINAURAL_FREQS[type];
+    desc.innerHTML = `Notch для <strong style="color:var(--amber)">${f.label}</strong>: вирізає <strong style="color:var(--cyan)">${f.l} Гц</strong> (L) та <strong style="color:var(--cyan)">${f.r} Гц</strong> (R) з фонового треку. Q=30 (~4–5 Гц ширина зрізу). Активно лише при бінауральному ритмі + музиці.`;
+  }
+}
+
+updateNotchDesc();
+document.getElementById('binaural-type').addEventListener('change', updateNotchDesc);
+
+async function generate() {
+  const main = document.getElementById('text-main').value.trim();
+  if (!main) { alert('Блок 2 (основний текст) обов\'язковий'); return; }
+
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.innerHTML = '<span class="bg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke-dasharray="40 20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1.2s" repeatCount="indefinite"/></circle></svg></span><span>Обробка...</span>';
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('dl-wrap').style.display = 'none';
+  document.getElementById('err-txt').style.display = 'none';
+  setProgress(5, 'Відправка запиту...');
+
+  const fd = new FormData();
+  fd.append('text_main',   main);
+  fd.append('voice_uk',    document.getElementById('voice-uk').value);
+  fd.append('voice_ru',    document.getElementById('voice-ru').value);
+  fd.append('voice_en',    document.getElementById('voice-en').value);
+  fd.append('lang_main',     document.getElementById('lang-main').value);
+  fd.append('layers',        document.getElementById('layers').value);
+  fd.append('speed_min',     document.getElementById('speed-min').value);
+  fd.append('speed_max',     document.getElementById('speed-max').value);
+  fd.append('silence_start', document.getElementById('sil-start').value);
+  fd.append('silence_end',   document.getElementById('sil-end').value);
+  fd.append('noise_type',    document.getElementById('noise-type').value);
+  fd.append('noise_volume',  document.getElementById('noise-volume').value);
+  fd.append('binaural_type',    document.getElementById('binaural-type').value);
+  fd.append('binaural_volume',  document.getElementById('binaural-volume').value);
+  fd.append('music_type',       document.getElementById('music-type').value);
+  fd.append('music_volume',     document.getElementById('music-volume').value);
+  fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
+
+  try {
+    const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());
+    pollStatus(job_id);
+  } catch(e) { showError('Помилка: '+e.message); resetBtn(); }
+}
+
+function pollStatus(job_id) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const d = await fetch('/status/'+job_id).then(r=>r.json());
+      if (d.status === 'processing') {
+        const p = d.progress || 5;
+        const msg = p < 25 ? '🎙 Генерація TTS...'
+          : p < 90 ? `⚡ AM-кодування шарів... ${p}%`
+          : '💾 Нормалізація та запис WAV...';
+        setProgress(p, msg);
+      } else if (d.status === 'done') {
+        clearInterval(pollTimer);
+        setProgress(100, '✅ Готово!');
+        setTimeout(() => showDownload(job_id), 400);
+        resetBtn();
+      } else if (d.status === 'error') {
+        clearInterval(pollTimer);
+        showError('Помилка: ' + (d.error||'невідома'));
+        resetBtn();
+      }
+    } catch {}
+  }, 800);
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('status-txt').textContent = msg;
+}
+function showDownload(job_id) {
+  document.getElementById('dl-link').href = '/download/'+job_id;
+  document.getElementById('dl-raw-link').href = '/download_raw/'+job_id;
+  const w = document.getElementById('dl-wrap');
+  w.style.display = 'flex';
+  w.scrollIntoView({behavior:'smooth'});
+}
+function showError(msg) {
+  const el = document.getElementById('err-txt');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('prog-wrap').style.display = 'none';
+}
+function resetBtn() {
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = false;
+  btn.innerHTML = '<span class="bg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 L4 14 H12 L11 22 L20 10 H12 Z" fill="currentColor"/></svg></span><span>Генерувати WAV</span>';
+}
+
+/* ===== Top status indicator hook (read-only, no logic changes) ===== */
+(function(){
+  const gs = document.getElementById('gen-status');
+  const gsState = document.getElementById('gs-state');
+  if (!gs || !gsState) return;
+  const STATES = {
+    idle:       { label: 'Готовий до генерації' },
+    processing: { label: 'Генерація...' },
+    done:       { label: 'Готово · файли доступні' },
+    error:      { label: 'Помилка обробки' },
+  };
+  function setState(name, extra){
+    gs.dataset.state = name;
+    gsState.textContent = (STATES[name]?.label || name) + (extra ? ' · ' + extra : '');
+  }
+  // Observe progress fill width
+  const fill = document.getElementById('prog-fill');
+  const dl = document.getElementById('dl-wrap');
+  const err = document.getElementById('err-txt');
+  const btn = document.getElementById('btn-gen');
+  if (fill) {
+    new MutationObserver(()=>{
+      const w = parseFloat(fill.style.width) || 0;
+      if (btn && btn.disabled && w < 100) setState('processing', Math.round(w) + '%');
+      else if (w >= 100) setState('done');
+    }).observe(fill, {attributes:true, attributeFilter:['style']});
+  }
+  if (dl) new MutationObserver(()=>{
+    if (dl.style.display && dl.style.display !== 'none') setState('done');
+  }).observe(dl, {attributes:true, attributeFilter:['style']});
+  if (err) new MutationObserver(()=>{
+    if (err.style.display && err.style.display !== 'none') setState('error');
+  }).observe(err, {attributes:true, attributeFilter:['style']});
+  if (btn) new MutationObserver(()=>{
+    if (!btn.disabled && gs.dataset.state === 'processing') setState('idle');
+  }).observe(btn, {attributes:true, attributeFilter:['disabled']});
+})();
+
+/* ===== Optional Tweaks (host iframe only — silent in production) ===== */
+(function(){
+  const PALETTES = /*EDITMODE-BEGIN*/{
+    "accent": "cyan"
+  }/*EDITMODE-END*/;
+  const accentMap = {
+    cyan:  {a:'#00e5ff', b:'#b14dff'},
+    green: {a:'#10ffa8', b:'#22d3ee'},
+    pink:  {a:'#ff5fb8', b:'#ffb800'},
+    ice:   {a:'#a5f3fc', b:'#818cf8'},
+  };
+  function applyAccent(name){
+    const p = accentMap[name] || accentMap.cyan;
+    document.documentElement.style.setProperty('--cyan', p.a);
+    document.documentElement.style.setProperty('--purple', p.b);
+    document.querySelectorAll('#tweaks-panel .sw').forEach(s=>{
+      s.classList.toggle('active', s.dataset.acc === name);
+    });
+  }
+  applyAccent(PALETTES.accent);
+
+  const panel = document.getElementById('tweaks-panel');
+  window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    if (e.data.type === '__activate_edit_mode') panel.style.display = 'block';
+    if (e.data.type === '__deactivate_edit_mode') panel.style.display = 'none';
+  });
+  try {
+    window.parent && window.parent.postMessage({type: '__edit_mode_available'}, '*');
+  } catch(_) {}
+
+  panel.querySelectorAll('.sw').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const acc = sw.dataset.acc;
+      applyAccent(acc);
+      try {
+        window.parent.postMessage({type:'__edit_mode_set_keys', edits:{accent: acc}}, '*');
+      } catch(_) {}
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Neurocode Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+/* =====================================================
+   NEUROCODE STUDIO · Poster / 3D blob aesthetic
+   Cool grey canvas · white Helvetica · black ribbons
+   ===================================================== */
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#1a1a1a;
+  --bg-2:#0f0f0f;
+
+  --ink:#ffffff;            /* primary headlines / white on dark */
+  --ink-2:#e6e6e6;          /* light body text */
+  --ink-3:#9a9a9a;
+  --ink-4:#6a6a6a;
+  --hair:#4a4a4a;
+  --hair-soft:#333333;
+
+  --black:#ffffff;            /* accent: high-contrast fill (white on dark) */
+  --on-black:#1a1a1a;       /* text color on top of the accent */
+
+  --t-display:'Inter',Helvetica,Arial,sans-serif;
+  --t-mono:'Space Mono','JetBrains Mono',monospace;
+}
+
+html,body{background:var(--bg);color:var(--ink-2)}
+body{
+  font-family:var(--t-display);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"ss01","cv11";
+}
+::selection{background:var(--black);color:var(--on-black)}
+
+/* ---------- Container ---------- */
+.app{
+  max-width:1320px;margin:0 auto;
+  padding:28px 36px 60px;
+  position:relative;
+}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:24px;
+  padding:12px 0;
+  border-top:1px solid var(--ink-2);
+  border-bottom:1px solid var(--ink-2);
+  font-family:var(--t-mono);
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-2);
+}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.topbar-center{display:flex;align-items:center;gap:14px;justify-content:center;color:var(--ink-2)}
+.topbar-right{display:flex;align-items:center;gap:16px;justify-content:flex-end}
+.topbar .sep{color:var(--ink-4)}
+.topbar .val{color:var(--ink)}
+
+/* Status pill */
+.gen-status{display:inline-flex;align-items:center;gap:10px}
+.gen-status .gs-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--black);
+  animation:livepulse 1.8s ease-in-out infinite;flex-shrink:0;
+}
+@keyframes livepulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}
+  50%{box-shadow:0 0 0 5px rgba(255,255,255,0)}
+}
+.gen-status[data-state="processing"] .gs-dot{animation-duration:.55s}
+.gen-status[data-state="error"] .gs-dot{background:var(--black);animation:none;box-shadow:0 0 0 1px var(--black)}
+
+/* ---------- Hero ---------- */
+.hero{
+  position:relative;
+  display:grid;grid-template-columns:minmax(340px, 1fr) 1fr;
+  gap:32px;align-items:start;
+  min-height:680px;
+  margin:32px 0 56px;
+  isolation:isolate;
+}
+
+/* Top-left venue cluster */
+.venue{
+  display:flex;align-items:flex-start;gap:18px;
+  font-family:var(--t-mono);
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);
+  line-height:1.4;
+  margin-bottom:24px;
+}
+.venue-num{
+  font-family:var(--t-display);font-weight:700;font-size:48px;
+  letter-spacing:-.04em;line-height:.85;color:var(--ink-2);
+}
+.venue-body strong{
+  display:block;color:var(--ink-2);font-weight:700;font-size:13px;
+  letter-spacing:.16em;margin-bottom:2px;
+}
+
+/* Big stacked title */
+.title{
+  font-family:var(--t-display);
+  font-weight:900;
+  color:var(--ink);
+  letter-spacing:-.045em;
+  line-height:.85;
+  text-transform:uppercase;
+  font-size:clamp(64px, 8.8vw, 132px);
+}
+.title .t-line{display:block}
+.title .t-line + .t-line{margin-top:-4px}
+
+/* Inline time tag in title */
+.time-tag{
+  display:inline-flex;flex-direction:column;
+  background:var(--black);color:var(--on-black);
+  padding:7px 14px 8px;
+  font-family:var(--t-mono);font-size:13px;font-weight:700;
+  letter-spacing:.08em;line-height:1.15;
+  vertical-align:middle;margin-left:8px;
+  position:relative;top:-12px;
+}
+.time-tag span{display:block}
+.time-tag span + span{border-top:1px solid #555;padding-top:2px;margin-top:2px;color:#bdbdbd}
+
+/* Ribbon strips (black background, white mono text) */
+.ribbon{
+  display:inline-block;
+  background:var(--black);color:var(--on-black);
+  padding:5px 12px 6px;
+  font-family:var(--t-mono);font-size:11px;font-weight:400;
+  letter-spacing:.18em;text-transform:uppercase;
+  line-height:1.3;
+}
+.ribbons{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin-top:28px;max-width:480px}
+
+/* Blob hero — 3D organic black mass */
+.blob-wrap{
+  position:absolute;right:-40px;top:-40px;
+  width:62%;height:760px;
+  z-index:-1;
+  display:flex;align-items:flex-start;justify-content:flex-end;
+  pointer-events:none;
+}
+.blob-wrap svg{display:block;width:100%;height:100%}
+.blob-tag{
+  position:absolute;right:0;bottom:80px;z-index:2;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.22em;
+  color:var(--ink-2);text-transform:uppercase;display:flex;align-items:center;gap:10px;
+}
+.blob-tag::before{content:"";display:inline-block;width:18px;height:1px;background:var(--ink-2)}
+
+/* ---------- Section header ---------- */
+.section{margin-bottom:56px;position:relative}
+.section-head{
+  display:grid;grid-template-columns:80px 1fr auto;align-items:baseline;gap:24px;
+  padding-bottom:12px;border-bottom:1px solid var(--ink-2);
+  margin-bottom:24px;
+}
+.section-num{
+  font-family:var(--t-mono);font-size:11px;font-weight:700;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;
+}
+.section-title{
+  font-family:var(--t-display);font-size:22px;font-weight:800;letter-spacing:-.02em;
+  text-transform:uppercase;color:var(--ink);line-height:1;
+}
+.section-meta{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-2);text-transform:uppercase;
+}
+.section-desc{
+  margin-left:104px;max-width:680px;
+  font-family:var(--t-display);font-size:13px;line-height:1.6;color:var(--ink-2);
+  margin-bottom:24px;
+}
+
+/* ---------- Field row ---------- */
+.field{
+  display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:start;
+  padding:14px 0;border-top:1px solid var(--hair-soft);
+}
+.field:first-child{border-top:0}
+.field-label{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;padding-top:8px;
+  line-height:1.4;
+}
+.field-label .num{color:var(--black);font-weight:700}
+.field-body{min-width:0}
+
+/* Textarea */
+textarea{
+  width:100%;background:transparent;
+  border:1px solid var(--ink-2);
+  color:var(--ink-2);
+  font-family:var(--t-display);font-size:15px;line-height:1.7;font-weight:500;
+  padding:16px 18px;resize:vertical;outline:none;border-radius:0;
+  transition:border-color .2s,background .2s;
+}
+textarea::placeholder{color:var(--ink-4);font-style:normal}
+textarea:focus{border-color:var(--ink);background:rgba(255,255,255,.04)}
+
+/* Select */
+.sel-wrap{position:relative;display:inline-block;min-width:200px}
+.sel-wrap::after{
+  content:"";position:absolute;right:14px;top:50%;
+  width:0;height:0;
+  border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:5px solid var(--ink-2);
+  transform:translateY(-50%);pointer-events:none;
+}
+select{
+  width:100%;background:transparent;
+  border:1px solid var(--ink-2);border-radius:0;
+  color:var(--ink-2);font-family:var(--t-display);
+  font-size:13px;font-weight:600;letter-spacing:.02em;
+  padding:11px 36px 11px 14px;outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  transition:border-color .2s,background .2s;
+}
+select:hover{background:rgba(255,255,255,.05)}
+select:focus{border-color:var(--ink);background:rgba(255,255,255,.07)}
+select option{background:#1a1a1a;color:var(--ink-2);padding:8px}
+
+/* Slider */
+.slider-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+.slider-meta{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;
+}
+.slider-meta .v{
+  color:var(--on-black);font-weight:700;letter-spacing:.04em;
+  background:var(--black);padding:2px 8px;
+}
+.slider-track{position:relative;padding:6px 0}
+input[type=range]{
+  width:100%;height:14px;background:transparent;cursor:pointer;
+  outline:none;border:none;
+  appearance:none;-webkit-appearance:none;
+  --pct:50%;position:relative;z-index:2;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:1px;
+  background:linear-gradient(90deg, var(--black) 0%, var(--black) var(--pct), var(--hair-soft) var(--pct), var(--hair-soft) 100%);
+}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;
+  width:3px;height:14px;border-radius:0;
+  background:var(--black);cursor:pointer;
+  margin-top:-7px;transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scaleX(2.5)}
+input[type=range]::-moz-range-track{height:1px;background:var(--hair-soft);border:none}
+input[type=range]::-moz-range-progress{height:1px;background:var(--black)}
+input[type=range]::-moz-range-thumb{width:3px;height:14px;border-radius:0;background:var(--black);border:none}
+.slider-ticks{
+  display:flex;justify-content:space-between;
+  font-family:var(--t-mono);font-size:8px;letter-spacing:.1em;
+  color:var(--ink-4);text-transform:uppercase;margin-top:4px;
+}
+.slider-ticks span{display:flex;flex-direction:column;align-items:center;gap:3px}
+.slider-ticks span::before{content:"";width:1px;height:3px;background:var(--ink-4)}
+
+/* Toggle */
+.switch{position:relative;display:inline-block;width:44px;height:20px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{
+  position:absolute;inset:0;cursor:pointer;
+  background:transparent;border:1px solid var(--ink-2);
+  transition:.25s;
+}
+.slider::before{
+  content:"";position:absolute;
+  width:14px;height:14px;left:2px;top:50%;transform:translateY(-50%);
+  background:var(--ink-2);transition:.25s ease;
+}
+.switch input:checked + .slider{background:var(--black);border-color:var(--black)}
+.switch input:checked + .slider::before{transform:translate(22px,-50%);background:var(--ink)}
+
+/* Language chips */
+.lang-preview{display:flex;gap:6px;flex-wrap:wrap;min-height:22px;margin-top:10px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 10px;
+  background:var(--black);color:var(--on-black);
+  font-family:var(--t-mono);font-size:9px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;
+  animation:chipIn .3s ease;
+}
+@keyframes chipIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.chip::before{content:"·"; color:#888; margin-right:2px}
+
+/* Info row under text */
+.info-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--ink-2);text-transform:uppercase;margin-top:10px;
+}
+.info-row #count-main{color:var(--ink-3)}
+.info-row #dur-main{background:var(--black);color:var(--on-black);padding:2px 8px;font-weight:700}
+
+/* Pipeline */
+.pipeline{
+  display:grid;grid-template-columns:repeat(5,1fr);align-items:center;gap:0;
+  padding:22px 0;margin-bottom:24px;
+  border-top:1px solid var(--ink-2);border-bottom:1px solid var(--ink-2);
+}
+.flow-block{
+  text-align:center;padding:0 14px;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-2);
+}
+.flow-block .fb-name{
+  font-family:var(--t-display);font-size:15px;letter-spacing:-.005em;font-weight:800;
+  color:var(--ink);text-transform:uppercase;display:block;margin-bottom:6px;
+}
+.flow-block .fb-sub{font-size:9px;letter-spacing:.16em;color:var(--ink-2)}
+.flow-arrow{display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.flow-arrow svg{width:100%;height:14px;max-width:80px}
+
+/* Voice grid */
+.voice-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+  border-top:1px solid var(--hair-soft);
+}
+.lang-group{padding:18px 20px;border-left:1px solid var(--hair-soft)}
+.lang-group:first-child{border-left:0;padding-left:0}
+.lang-group > label{
+  display:block;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;margin-bottom:8px;
+}
+.lang-group > label .lg-num{color:var(--black);font-weight:700}
+
+/* Notch EQ row — premium black ribbon panel */
+#notch-row{
+  display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;
+  padding:22px 24px;margin-top:24px;
+  background:var(--black);color:var(--on-black);
+  position:relative;
+}
+#notch-row::before{
+  content:"NOTCH · EQ · SURGICAL";position:absolute;top:-9px;left:24px;
+  background:var(--black);color:var(--on-black);
+  padding:3px 10px;
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.3em;font-weight:700;
+  border:1px solid var(--bg);
+}
+.notch-icon{
+  width:84px;height:64px;flex-shrink:0;color:var(--on-black);
+  display:flex;align-items:center;justify-content:center;
+}
+.notch-icon svg{width:100%;height:100%}
+.notch-body{min-width:0;color:var(--on-black)}
+.notch-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.notch-title{
+  font-family:var(--t-display);font-size:18px;font-weight:800;
+  letter-spacing:-.005em;color:var(--on-black);text-transform:uppercase;line-height:1;
+}
+.notch-tag{font-family:var(--t-mono);font-size:9px;letter-spacing:.22em;color:#555;text-transform:uppercase}
+.notch-tag::before{content:"//";margin-right:6px;color:#999}
+#notch-desc{
+  font-family:var(--t-display);font-size:12px;line-height:1.6;color:#333;
+  max-width:520px;
+}
+#notch-desc strong{color:var(--on-black);font-weight:700;font-family:var(--t-mono);letter-spacing:.04em}
+#notch-desc em{color:#777;font-style:normal}
+
+/* Override toggle inside dark notch */
+#notch-row .switch .slider{border-color:#999}
+#notch-row .switch .slider::before{background:#666}
+#notch-row .switch input:checked + .slider{background:var(--on-black);border-color:var(--on-black)}
+#notch-row .switch input:checked + .slider::before{background:var(--black)}
+
+/* ---------- Action ---------- */
+.action{
+  margin-top:48px;padding-top:24px;
+  border-top:1px solid var(--ink-2);
+  display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;
+}
+.action-meta{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-2);text-transform:uppercase;line-height:1.6;
+}
+.action-meta strong{color:var(--ink);font-weight:700}
+.btn-generate{
+  position:relative;
+  display:inline-flex;align-items:center;gap:18px;
+  padding:20px 36px;
+  background:var(--black);color:var(--on-black);
+  border:1px solid var(--black);
+  font-family:var(--t-display);
+  font-size:14px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+  cursor:pointer;border-radius:0;
+  transition:background .15s,color .15s,padding .2s;
+  min-width:320px;justify-content:space-between;
+}
+.btn-generate::after{
+  content:"→";font-family:var(--t-mono);font-size:20px;
+  transition:transform .25s ease;
+}
+.btn-generate:hover:not(:disabled){background:var(--ink);color:var(--black)}
+.btn-generate:hover:not(:disabled)::after{transform:translateX(8px)}
+.btn-generate:disabled{
+  background:transparent;color:var(--ink-3);border-color:var(--hair-soft);cursor:not-allowed;
+}
+.btn-generate .bg-icon{display:none}
+.btn-generate > span:not(.bg-icon){flex:1;text-align:left}
+
+/* ---------- Progress (liquid flow) ---------- */
+.progress-wrap{
+  display:none;margin-top:30px;padding-top:22px;
+  border-top:1px solid var(--ink-2);
+}
+.progress-label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--t-mono);font-size:11px;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;margin-bottom:10px;
+}
+#prog-pct{
+  font-family:var(--t-display);font-size:28px;font-weight:800;
+  letter-spacing:-.02em;color:var(--ink);
+}
+.progress-bar{
+  position:relative; height:88px;
+  background:#0f0f0f;
+  border:1px solid var(--hair);
+  overflow:hidden;
+  container-type:inline-size;
+  container-name:pbar;
+}
+.marble-base, .marble-fill-inner{
+  position:absolute; top:0; left:0; height:100%;
+  pointer-events:none;
+}
+.marble-base{width:100%; opacity:.32}
+.marble-base svg, .marble-fill-inner svg{display:block; width:100%; height:100%}
+.progress-fill{
+  position:absolute; top:0; left:0; bottom:0;
+  width:0%;
+  overflow:hidden;
+  transition: width .55s cubic-bezier(.5,1.1,.4,1);
+  background:transparent;
+}
+.marble-fill-inner{width:100cqw}
+/* leading edge — thick vertical marker */
+.progress-fill::after{
+  content:"";
+  position:absolute; top:-4px; right:-1px; height:calc(100% + 8px);
+  width:2px; background:var(--ink-2);
+}
+/* top scrubber arrow that follows the fill */
+.prog-marker{
+  position:absolute; top:-9px; width:0; height:0;
+  border-left:6px solid transparent; border-right:6px solid transparent;
+  border-top:7px solid var(--ink-2);
+  left: calc(var(--pct,0%) - 6px);
+  transition: left .55s cubic-bezier(.5,1.1,.4,1);
+  pointer-events:none;
+}
+.progress-ticks{
+  display:flex;justify-content:space-between;
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.14em;
+  color:var(--ink-4);margin-top:6px;text-transform:uppercase;
+}
+.progress-ticks span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.progress-ticks span::before{content:"";width:1px;height:3px;background:var(--ink-4)}
+.status-text{
+  font-family:var(--t-mono);font-size:11px;letter-spacing:.06em;color:var(--ink-2);
+  margin-top:18px;text-align:left;
+}
+
+/* ---------- Downloads ---------- */
+.download-wrap{
+  display:none;margin-top:30px;
+  grid-template-columns:1fr 1fr;gap:0;
+  border-top:1px solid var(--ink-2);border-bottom:1px solid var(--ink-2);
+  animation:dropIn .4s ease;
+}
+@keyframes dropIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.btn-download{
+  display:flex;flex-direction:column;gap:14px;
+  padding:24px 24px;text-decoration:none;color:var(--ink-2);
+  border-left:1px solid var(--ink-2);
+  transition:background .15s,color .15s;
+  position:relative;font-family:var(--t-display);
+}
+.btn-download:first-child{border-left:0}
+.btn-download:hover{background:var(--black);color:var(--on-black)}
+.btn-download .dl-label{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:10px;
+}
+.btn-download:hover .dl-label{color:#bdbdbd}
+.btn-download .dl-label::before{
+  content:"";display:inline-block;width:14px;height:1px;background:currentColor;
+}
+.btn-download .dl-main{
+  font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.1;text-transform:uppercase;
+}
+.btn-download .dl-icon{
+  position:absolute;top:24px;right:24px;
+  font-family:var(--t-mono);font-size:22px;font-weight:700;
+  transition:transform .25s ease;color:var(--ink-2);
+}
+.btn-download:hover .dl-icon{transform:translate(4px,-4px);color:var(--ink)}
+
+.error-text{
+  color:var(--on-black);background:var(--black);
+  font-family:var(--t-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  text-align:left;margin-top:18px;display:none;padding:14px 16px;
+}
+
+/* ---------- Footer ---------- */
+.footer{
+  margin-top:64px;padding-top:24px;
+  border-top:1px solid var(--ink-2);
+  display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--ink-2);text-transform:uppercase;line-height:1.8;
+}
+.footer h4{
+  font-family:var(--t-mono);font-size:10px;font-weight:700;
+  color:var(--ink);letter-spacing:.22em;margin-bottom:8px;
+  background:var(--black);display:inline-block;padding:3px 8px;
+}
+.footer .ftr-block strong{color:var(--ink);font-weight:700;display:block;font-size:11px}
+
+/* ---------- Mobile ---------- */
+@media (max-width:880px){
+  .app{padding:20px 18px 60px}
+  .hero{grid-template-columns:1fr;min-height:auto;gap:16px}
+  .blob-wrap{position:relative;width:100%;height:360px;right:auto;top:auto;order:2}
+  .title{font-size:14vw}
+  .topbar{grid-template-columns:1fr;gap:8px;text-align:center;font-size:9px}
+  .topbar-left,.topbar-center,.topbar-right{justify-content:center}
+  .section-head{grid-template-columns:50px 1fr;gap:14px}
+  .section-meta{display:none}
+  .section-desc{margin-left:0}
+  .field{grid-template-columns:1fr;gap:10px}
+  .field-label{padding-top:0}
+  .pipeline{grid-template-columns:1fr;gap:14px}
+  .flow-arrow{transform:rotate(90deg);margin:0 auto}
+  .voice-grid{grid-template-columns:1fr}
+  .lang-group{border-left:0;border-top:1px solid var(--hair-soft);padding:14px 0}
+  .lang-group:first-child{border-top:0}
+  #notch-row{grid-template-columns:1fr;gap:16px;padding:20px 18px}
+  .action{grid-template-columns:1fr;gap:16px}
+  .btn-generate{width:100%}
+  .download-wrap{grid-template-columns:1fr}
+  .btn-download{border-left:0;border-top:1px solid var(--ink-2)}
+  .btn-download:first-child{border-top:0}
+  .footer{grid-template-columns:1fr 1fr;gap:18px}
+}
+
+/* Tweaks panel */
+#tweaks-panel{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  width:240px;padding:14px;background:#0a0a0a;color:#fff;
+  border:1px solid #fff;display:none;
+}
+#tweaks-panel h4{font-family:var(--t-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:#fff;margin-bottom:10px}
+#tweaks-panel .opts{display:flex;flex-direction:column;gap:6px}
+#tweaks-panel .opt{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  padding:6px 10px;border:1px solid #444;cursor:pointer;color:#bdbdbd;
+}
+#tweaks-panel .opt:hover{border-color:#fff;color:#fff}
+#tweaks-panel .opt.active{border-color:#fff;background:#fff;color:#000}
+</style>
+</head>
+<body>
+
+<!-- Shared SVG defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Goo filter: blur + alpha-threshold so overlapping shapes merge into one organic mass -->
+    <filter id="goo" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" mode="matrix"
+        values="1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                0 0 0 30 -14" result="goo"/>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+    <!-- Liquid flow progress filter -->
+    <filter id="liq-prog" x="-2%" y="-20%" width="104%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.025" numOctaves="2" seed="5">
+        <animate attributeName="baseFrequency" dur="18s"
+          values="0.006 0.025;0.012 0.04;0.006 0.025" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" scale="38"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="gen-status" id="gen-status" data-state="idle">
+        <span class="gs-dot"></span>
+        <span class="gs-state" id="gs-state">Готовий до генерації</span>
+      </span>
+    </div>
+    <div class="topbar-center">
+      <span>Neurocode Studio</span>
+      <span class="sep">/</span>
+      <span class="val">NCS · 02</span>
+      <span class="sep">/</span>
+      <span>Engine v2.6</span>
+    </div>
+    <div class="topbar-right">
+      <span>48 kHz</span>
+      <span class="sep">/</span>
+      <span>Stereo</span>
+      <span class="sep">/</span>
+      <span class="val" id="gs-engine">PCM·16</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <!-- BLOB BACKGROUND -->
+    <div class="blob-wrap" aria-hidden="true">
+      <svg id="blob-svg" viewBox="0 0 600 760" preserveAspectRatio="xMidYMid meet">
+        <g filter="url(#goo)">
+          <g id="blob-mass"></g>
+        </g>
+        <!-- Specular highlights -->
+        <g id="blob-shine" opacity=".18"></g>
+      </svg>
+      <div class="blob-tag">Signal · 03 / AM mass</div>
+    </div>
+
+    <!-- COMPOSITION -->
+    <div>
+      <div class="venue">
+        <div class="venue-num">02</div>
+        <div class="venue-body">
+          <strong>Neurocode Studio</strong>
+          v 2.6 · 2026.02 — 2026.06<br/>
+          Build · Long-format edition
+        </div>
+      </div>
+
+      <h1 class="title" data-screen-label="01 Hero title">
+        <span class="t-line">АФІР·</span>
+        <span class="t-line">МАЦІЇ<span class="time-tag"><span>48 kHz</span><span>WAV</span></span></span>
+        <span class="t-line">ENGINE</span>
+      </h1>
+
+      <div class="ribbons">
+        <span class="ribbon">·PSYCHOACOUSTIC · MULTI-LAYER AM ENCODING·</span>
+        <span class="ribbon">·Підсвідомі афірмації · Багатопотоковий шар·</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 01 — TEXT -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-num">01 / 03</div>
+      <div class="section-title">Текст · Affirmation Source</div>
+      <div class="section-meta">Multi-thread · AM-encoded</div>
+    </header>
+    <div class="section-desc">
+      Кодування афірмацій — AM-модуляція по всьому спектру. Обов'язковий блок ядра генерації. Підтримує українську, російську та англійську з авто-сегментацією.
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">01·a</span><br/>Мова потоку</div>
+      <div class="field-body">
+        <div class="sel-wrap">
+          <select id="lang-main" onchange="onInput('main')">
+            <option value="auto" selected>Auto / автодетект за текстом</option>
+            <option value="ru">Російська · RU</option>
+            <option value="uk">Українська · UK</option>
+            <option value="en">English · EN</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">01·b</span><br/>Текст</div>
+      <div class="field-body">
+        <textarea id="text-main" rows="8" oninput="onInput('main')"
+          placeholder="Я здоровий і сильний&#10;Моє тіло ідеально здорове&#10;Моё тело полно энергии&#10;I am confident and successful&#10;Я досягаю всіх своїх цілей&#10;Всесвіт підтримує мене..."></textarea>
+        <div class="info-row">
+          <span id="count-main">0 символів</span>
+          <span id="dur-main">—</span>
+        </div>
+        <div class="lang-preview" id="preview-main"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 02 — VOICE -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-num">02 / 03</div>
+      <div class="section-title">Голос · Voice Cast</div>
+      <div class="section-meta">Neural TTS · 3 lang</div>
+    </header>
+
+    <div class="voice-grid">
+      <div class="lang-group">
+        <label><span class="lg-num">UK · </span>Українська</label>
+        <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+          <select id="voice-uk">
+            <option value="uk-UA-PolinaNeural">Поліна · жіночий</option>
+            <option value="uk-UA-OstapNeural">Остап · чоловічий</option>
+          </select>
+        </div>
+      </div>
+      <div class="lang-group">
+        <label><span class="lg-num">RU · </span>Російська</label>
+        <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+          <select id="voice-ru">
+            <option value="ru-RU-SvetlanaNeural">Світлана · жіночий</option>
+            <option value="ru-RU-DmitryNeural">Дмитро · чоловічий</option>
+          </select>
+        </div>
+      </div>
+      <div class="lang-group">
+        <label><span class="lg-num">EN · </span>English</label>
+        <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+          <select id="voice-en">
+            <option value="en-US-AriaNeural">Aria · female</option>
+            <option value="en-US-GuyNeural">Guy · male</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 03 — PARAMS -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-num">03 / 03</div>
+      <div class="section-title">Параметри · Encoder Params</div>
+      <div class="section-meta">DSP · ambient · binaural</div>
+    </header>
+
+    <!-- Pipeline -->
+    <div class="pipeline">
+      <div class="flow-block"><span class="fb-name">Pause</span><span class="fb-sub">intro · silence</span></div>
+      <div class="flow-arrow">
+        <svg viewBox="0 0 80 14" preserveAspectRatio="none">
+          <line x1="0" y1="7" x2="74" y2="7" stroke="currentColor" stroke-width="1"/>
+          <path d="M74 3 L80 7 L74 11" stroke="currentColor" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div class="flow-block"><span class="fb-name">Affirmation</span><span class="fb-sub">multi-layer · AM</span></div>
+      <div class="flow-arrow">
+        <svg viewBox="0 0 80 14" preserveAspectRatio="none">
+          <line x1="0" y1="7" x2="74" y2="7" stroke="currentColor" stroke-width="1"/>
+          <path d="M74 3 L80 7 L74 11" stroke="currentColor" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div class="flow-block"><span class="fb-name">Pause</span><span class="fb-sub">outro · silence</span></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·a</span><br/>Шари / Layers</div>
+      <div class="field-body">
+        <div class="slider-block">
+          <div class="slider-meta"><span>04 ── 32 · step 2</span><span class="v" id="lbl-layers">24</span></div>
+          <div class="slider-track"><input type="range" id="layers" min="4" max="32" step="2" value="24" oninput="sync(this,'lbl-layers')"/></div>
+          <div class="slider-ticks"><span>04</span><span>10</span><span>16</span><span>22</span><span>28</span><span>32</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·b</span><br/>Прискорення</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+          <div class="slider-block">
+            <div class="slider-meta"><span>Min · Block 02</span><span class="v" id="lbl-smin">3x</span></div>
+            <div class="slider-track"><input type="range" id="speed-min" min="2" max="9" step="0.5" value="3" oninput="sync(this,'lbl-smin','x')"/></div>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span>Max · Block 02</span><span class="v" id="lbl-smax">7x</span></div>
+            <div class="slider-track"><input type="range" id="speed-max" min="3" max="10" step="0.5" value="7" oninput="sync(this,'lbl-smax','x')"/></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·c</span><br/>Тиша · Silences</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+          <div class="slider-block">
+            <div class="slider-meta"><span>Pause · intro</span><span class="v" id="lbl-sil-start">0.0с</span></div>
+            <div class="slider-track"><input type="range" id="sil-start" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-start','с')"/></div>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span>Pause · outro</span><span class="v" id="lbl-sil-end">0.0с</span></div>
+            <div class="slider-track"><input type="range" id="sil-end" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-end','с')"/></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·d</span><br/>Ambient · noise</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end">
+          <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+            <select id="noise-type">
+              <option value="none">— Вимкнено</option>
+              <option value="pink">Pink · Рожевий шум</option>
+              <option value="sea">Sea · Шум моря</option>
+              <option value="rain">Rain · Шум дощу</option>
+            </select>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span>Volume · dB</span><span class="v" id="lbl-noise-vol">-12дБ</span></div>
+            <div class="slider-track"><input type="range" id="noise-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-noise-vol','дБ')"/></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·e</span><br/>Binaural · brain</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end">
+          <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+            <select id="binaural-type">
+              <option value="none">— Вимкнено</option>
+              <option value="theta" selected>Theta · 04 Hz · Meditation</option>
+              <option value="alpha">Alpha · 10 Hz · Focus</option>
+              <option value="delta">Delta · 02 Hz · Sleep / Repair</option>
+              <option value="beta">Beta · 15 Hz · Activity</option>
+            </select>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span>Volume · dB</span><span class="v" id="lbl-binaural-vol">-12дБ</span></div>
+            <div class="slider-track"><input type="range" id="binaural-volume" min="-30" max="-6" step="1" value="-12" oninput="sync(this,'lbl-binaural-vol','дБ')"/></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·f</span><br/>Music bed</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end">
+          <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+            <select id="music-type"><option value="none">— Вимкнено</option></select>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span>Volume · dB</span><span class="v" id="lbl-music-vol">-12дБ</span></div>
+            <div class="slider-track"><input type="range" id="music-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-music-vol','дБ')"/></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTCH EQ -->
+    <div id="notch-row">
+      <div class="notch-icon" aria-hidden="true">
+        <svg viewBox="0 0 120 70" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="58" x2="116" y2="58" stroke-width=".6" opacity=".6"/>
+          <g stroke-width=".6" opacity=".6">
+            <line x1="12" y1="58" x2="12" y2="62"/>
+            <line x1="28" y1="58" x2="28" y2="62"/>
+            <line x1="44" y1="58" x2="44" y2="62"/>
+            <line x1="60" y1="58" x2="60" y2="64"/>
+            <line x1="76" y1="58" x2="76" y2="62"/>
+            <line x1="92" y1="58" x2="92" y2="62"/>
+            <line x1="108" y1="58" x2="108" y2="62"/>
+          </g>
+          <path d="M4 38 Q 24 32 32 32 Q 50 32 54 42 L 60 56 L 66 42 Q 70 32 88 32 Q 96 32 116 38" stroke-width="1.4"/>
+          <line x1="60" y1="6" x2="60" y2="28" stroke-width=".8"/>
+          <circle cx="60" cy="4" r="2.4" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="notch-body">
+        <div class="notch-head">
+          <div class="notch-title">Хірургічний Notch EQ</div>
+          <div class="notch-tag">Pro · Q=30 · 04–05 Hz</div>
+        </div>
+        <div id="notch-desc">Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. Активно лише при бінауральному ритмі + музиці.</div>
+      </div>
+      <label class="switch" title="Notch EQ">
+        <input type="checkbox" id="notch-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ACTION -->
+  <div class="action">
+    <div class="action-meta">
+      Output · <strong>WAV / 48 kHz / Stereo</strong><br/>
+      Composer-grade · long-form
+    </div>
+    <button class="btn-generate" id="btn-gen" onclick="generate()">
+      <span>Generate WAV</span>
+    </button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="progress-label"><span id="prog-stage">Обробка...</span><span id="prog-pct">0%</span></div>
+    <div class="progress-bar">
+      <span class="prog-marker" aria-hidden="true"></span>
+      <!-- faint base layer (whole bar) -->
+      <div class="marble-base" aria-hidden="true">
+        <svg viewBox="0 0 1000 88" preserveAspectRatio="none">
+          <g filter="url(#liq-prog)" stroke="#3d3d3d" stroke-width=".7" fill="none" id="liq-base"></g>
+        </svg>
+      </div>
+      <!-- filled layer (clipped to %) -->
+      <div class="progress-fill" id="prog-fill">
+        <div class="marble-fill-inner" aria-hidden="true">
+          <svg viewBox="0 0 1000 88" preserveAspectRatio="none">
+            <g filter="url(#liq-prog)" stroke="#ffffff" stroke-width=".75" fill="none" id="liq-fill"></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="progress-ticks"><span>00</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    <div class="status-text" id="status-txt">Підготовка...</div>
+  </div>
+
+  <div class="error-text" id="err-txt"></div>
+
+  <!-- DOWNLOADS -->
+  <div class="download-wrap" id="dl-wrap">
+    <a class="btn-download" id="dl-link" href="#" download>
+      <span class="dl-label">File · 01 / Encoded</span>
+      <span class="dl-main">Завантажити<br/>кодований WAV</span>
+      <span class="dl-icon">↗</span>
+    </a>
+    <a class="btn-download" id="dl-raw-link" href="#" download>
+      <span class="dl-label">File · 02 / Raw voice</span>
+      <span class="dl-main">Завантажити<br/>ісходний голос</span>
+      <span class="dl-icon">↗</span>
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="ftr-block">
+      <h4>Studio</h4>
+      <strong>Neurocode Studio</strong>
+      Psychoacoustic engine<br/>
+      Build · 2026.05<br/>
+      www.neurocode.studio
+    </div>
+    <div class="ftr-block">
+      <h4>Engine</h4>
+      AM modulation · multi-layer<br/>
+      Binaural · θ α δ β<br/>
+      Notch · Q=30 · surgical
+    </div>
+    <div class="ftr-block">
+      <h4>Format</h4>
+      WAV · 48 kHz · 16-bit<br/>
+      Stereo · long-form<br/>
+      up to 60 min
+    </div>
+    <div class="ftr-block">
+      <h4>Voices</h4>
+      UK · Polina · Ostap<br/>
+      RU · Svetlana · Dmitry<br/>
+      EN · Aria · Guy
+    </div>
+  </footer>
+</div>
+
+<!-- Tweaks -->
+<div id="tweaks-panel">
+  <h4>Blob · intensity</h4>
+  <div class="opts">
+    <div class="opt" data-intensity="80">Calm</div>
+    <div class="opt active" data-intensity="140">Standard</div>
+    <div class="opt" data-intensity="220">Turbulent</div>
+  </div>
+</div>
+
+<script>
+/* Build marble progress lines (base + fill share path geometry) */
+(function(){
+  const fill = document.getElementById('liq-fill');
+  const base = document.getElementById('liq-base');
+  if (!fill || !base) return;
+  const SVG = 'http://www.w3.org/2000/svg';
+  const N = 18;
+  for (let i = 0; i < N; i++) {
+    const y = 6 + i * (76/(N-1));
+    const d = `M-40 ${y} L 1040 ${y}`;
+    const p1 = document.createElementNS(SVG, 'path'); p1.setAttribute('d', d); fill.appendChild(p1);
+    const p2 = document.createElementNS(SVG, 'path'); p2.setAttribute('d', d); base.appendChild(p2);
+  }
+})();
+
+/* Build the goo blob: many overlapping black circles that drift slowly */
+(function(){
+  const SVG = 'http://www.w3.org/2000/svg';
+  const mass = document.getElementById('blob-mass');
+  const shine = document.getElementById('blob-shine');
+  if (!mass) return;
+
+  const cx = 320, cy = 380;
+  const N = 22;
+
+  function rand(min, max){ return min + Math.random()*(max-min); }
+
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * Math.PI * 2;
+    const baseR = rand(60, 160);
+    const x1 = cx + Math.cos(angle) * baseR;
+    const y1 = cy + Math.sin(angle) * baseR + rand(-30, 30);
+    const x2 = cx + Math.cos(angle + 0.4) * (baseR + rand(-50, 50));
+    const y2 = cy + Math.sin(angle + 0.4) * (baseR + rand(-50, 50));
+    const x3 = cx + Math.cos(angle - 0.4) * (baseR + rand(-40, 40));
+    const y3 = cy + Math.sin(angle - 0.4) * (baseR + rand(-40, 40));
+    const size = rand(60, 110);
+    const dur = rand(14, 26);
+
+    const c = document.createElementNS(SVG, 'circle');
+    c.setAttribute('r', size);
+    c.setAttribute('cx', x1);
+    c.setAttribute('cy', y1);
+    c.setAttribute('fill', '#0a0a0a');
+
+    const ax = document.createElementNS(SVG, 'animate');
+    ax.setAttribute('attributeName', 'cx');
+    ax.setAttribute('values', `${x1};${x2};${x3};${x1}`);
+    ax.setAttribute('dur', dur + 's');
+    ax.setAttribute('repeatCount', 'indefinite');
+    ax.setAttribute('calcMode', 'spline');
+    ax.setAttribute('keySplines', '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1');
+    ax.setAttribute('keyTimes', '0;0.33;0.66;1');
+    c.appendChild(ax);
+
+    const ay = document.createElementNS(SVG, 'animate');
+    ay.setAttribute('attributeName', 'cy');
+    ay.setAttribute('values', `${y1};${y2};${y3};${y1}`);
+    ay.setAttribute('dur', (dur + 4) + 's');
+    ay.setAttribute('repeatCount', 'indefinite');
+    ay.setAttribute('calcMode', 'spline');
+    ay.setAttribute('keySplines', '0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1');
+    ay.setAttribute('keyTimes', '0;0.33;0.66;1');
+    c.appendChild(ay);
+
+    mass.appendChild(c);
+  }
+
+  // Specular highlights — small white blobs offset to top-left, also animated
+  for (let i = 0; i < 5; i++) {
+    const x = rand(180, 380);
+    const y = rand(250, 430);
+    const sz = rand(22, 60);
+    const s = document.createElementNS(SVG, 'circle');
+    s.setAttribute('cx', x);
+    s.setAttribute('cy', y);
+    s.setAttribute('r', sz);
+    s.setAttribute('fill', '#fff');
+    s.setAttribute('filter', 'url(#shine)');
+    const ax = document.createElementNS(SVG, 'animate');
+    ax.setAttribute('attributeName', 'cx');
+    ax.setAttribute('values', `${x};${x+rand(-40,40)};${x}`);
+    ax.setAttribute('dur', rand(10, 18) + 's');
+    ax.setAttribute('repeatCount', 'indefinite');
+    s.appendChild(ax);
+    const ay = document.createElementNS(SVG, 'animate');
+    ay.setAttribute('attributeName', 'cy');
+    ay.setAttribute('values', `${y};${y+rand(-40,40)};${y}`);
+    ay.setAttribute('dur', rand(12, 20) + 's');
+    ay.setAttribute('repeatCount', 'indefinite');
+    s.appendChild(ay);
+    shine.appendChild(s);
+  }
+})();
+</script>
+
+<script>
+let pollTimer = null;
+const CPS = 14;
+
+function detectLang(t) {
+  const lo = t.toLowerCase();
+  const lat = (lo.match(/[a-z]/g)||[]).length;
+  const cyr = (lo.match(/[\u0400-\u04FF]/g)||[]).length;
+  if (lat > cyr && lat > 0) return 'en';
+  
+  const uk_m = (lo.match(/[їієґ]/g)||[]).length;
+  const ru_m = (lo.match(/[ыъэё]/g)||[]).length;
+  
+  if (uk_m > ru_m) return 'uk';
+  if (ru_m > uk_m) return 'ru';
+  
+  if (lo.includes('и') && !lo.includes('і')) return 'ru';
+  if (lo.includes('і') && !lo.includes('и')) return 'uk';
+  
+  return 'ru';
+}
+
+function getSegments(text, forcedLang) {
+  const parts = text.trim().split(/(?<=[.!?\n])\s+|\n+/).filter(s=>s.trim());
+  const segs = [];
+  parts.forEach(s => {
+    const lang = (forcedLang && forcedLang !== 'auto') ? forcedLang : detectLang(s);
+    if (segs.length && segs[segs.length-1].lang === lang) segs[segs.length-1].t += ' '+s;
+    else segs.push({lang, t:s});
+  });
+  return segs;
+}
+
+const LL = {uk:'UK · УКР', ru:'RU · РОС', en:'EN · ENG'};
+const CC = {uk:'chip-uk', ru:'chip-ru', en:'chip-en'};
+
+function onInput(id) {
+  const text = document.getElementById('text-'+id).value;
+  const forced = document.getElementById('lang-'+id).value;
+  document.getElementById('count-'+id).textContent = text.length + ' символів';
+  const est = text.trim().length > 0 ? Math.max(2, Math.round(text.trim().length / CPS)) : 0;
+  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}с` : '—';
+  
+  const preview = document.getElementById('preview-'+id);
+  if (!preview) return;
+  const segs = text.trim() ? getSegments(text, forced) : [];
+  preview.innerHTML = segs.map(s => `<span class="chip ${CC[s.lang]}">${LL[s.lang]}</span>`).join('');
+}
+
+function sync(el, lbl, sfx='') {
+  document.getElementById(lbl).textContent = el.value + sfx;
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+async function loadMusicTracks() {
+  const sel = document.getElementById('music-type');
+  try {
+    const tracks = await fetch('/music_tracks').then(r => r.json());
+    sel.innerHTML = '<option value="none">— Вимкнено</option>';
+    if (tracks.length === 0) {
+      const opt = document.createElement('option');
+      opt.disabled = true;
+      opt.textContent = '— Немає аудіофайлів в engine/music/';
+      sel.appendChild(opt);
+    } else {
+      tracks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.label;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {
+    console.warn('Could not load music tracks:', e);
+  }
+}
+loadMusicTracks();
+
+['layers','speed-min','speed-max','sil-start','sil-end','noise-volume','binaural-volume','music-volume'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.style.setProperty('--pct', ((el.value-el.min)/(el.max-el.min)*100)+'%');
+});
+
+const BINAURAL_FREQS = {
+  delta: { l: 136.1, r: 138.1, label: 'Дельта (2 Гц)' },
+  theta: { l: 136.1, r: 140.1, label: 'Тета (4 Гц)' },
+  alpha: { l: 136.1, r: 146.1, label: 'Альфа (10 Гц)' },
+  beta:  { l: 136.1, r: 151.1, label: 'Бета (15 Гц)' },
+};
+
+function updateNotchDesc() {
+  const type = document.getElementById('binaural-type').value;
+  const desc = document.getElementById('notch-desc');
+  if (!desc) return;
+  if (type === 'none' || !BINAURAL_FREQS[type]) {
+    desc.innerHTML = 'Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. <em>Оберіть бінауральний ритм, щоб побачити конкретні частоти.</em>';
+  } else {
+    const f = BINAURAL_FREQS[type];
+    desc.innerHTML = `Notch для <strong>${f.label}</strong>: вирізає <strong>${f.l} Гц</strong> (L) та <strong>${f.r} Гц</strong> (R) з фонового треку. Q=30 (~4–5 Гц ширина зрізу). Активно лише при бінауральному ритмі + музиці.`;
+  }
+}
+
+updateNotchDesc();
+document.getElementById('binaural-type').addEventListener('change', updateNotchDesc);
+
+async function generate() {
+  const main = document.getElementById('text-main').value.trim();
+  if (!main) { alert('Блок 2 (основний текст) обов\'язковий'); return; }
+
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.innerHTML = '<span>Processing...</span>';
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('dl-wrap').style.display = 'none';
+  document.getElementById('err-txt').style.display = 'none';
+  setProgress(5, 'Відправка запиту...');
+
+  const fd = new FormData();
+  fd.append('text_main',   main);
+  fd.append('voice_uk',    document.getElementById('voice-uk').value);
+  fd.append('voice_ru',    document.getElementById('voice-ru').value);
+  fd.append('voice_en',    document.getElementById('voice-en').value);
+  fd.append('lang_main',     document.getElementById('lang-main').value);
+  fd.append('layers',        document.getElementById('layers').value);
+  fd.append('speed_min',     document.getElementById('speed-min').value);
+  fd.append('speed_max',     document.getElementById('speed-max').value);
+  fd.append('silence_start', document.getElementById('sil-start').value);
+  fd.append('silence_end',   document.getElementById('sil-end').value);
+  fd.append('noise_type',    document.getElementById('noise-type').value);
+  fd.append('noise_volume',  document.getElementById('noise-volume').value);
+  fd.append('binaural_type',    document.getElementById('binaural-type').value);
+  fd.append('binaural_volume',  document.getElementById('binaural-volume').value);
+  fd.append('music_type',       document.getElementById('music-type').value);
+  fd.append('music_volume',     document.getElementById('music-volume').value);
+  fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
+
+  try {
+    const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());
+    pollStatus(job_id);
+  } catch(e) { showError('Помилка: '+e.message); resetBtn(); }
+}
+
+function pollStatus(job_id) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const d = await fetch('/status/'+job_id).then(r=>r.json());
+      if (d.status === 'processing') {
+        const p = d.progress || 5;
+        const msg = p < 25 ? 'Генерація TTS...'
+          : p < 90 ? `AM-кодування шарів... ${p}%`
+          : 'Нормалізація та запис WAV...';
+        setProgress(p, msg);
+      } else if (d.status === 'done') {
+        clearInterval(pollTimer);
+        setProgress(100, 'Готово.');
+        setTimeout(() => showDownload(job_id), 400);
+        resetBtn();
+      } else if (d.status === 'error') {
+        clearInterval(pollTimer);
+        showError('Помилка: ' + (d.error||'невідома'));
+        resetBtn();
+      }
+    } catch {}
+  }, 800);
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('status-txt').textContent = msg;
+  const bar = document.querySelector('.progress-bar');
+  if (bar) bar.style.setProperty('--pct', pct + '%');
+}
+function showDownload(job_id) {
+  document.getElementById('dl-link').href = '/download/'+job_id;
+  document.getElementById('dl-raw-link').href = '/download_raw/'+job_id;
+  const w = document.getElementById('dl-wrap');
+  w.style.display = 'grid';
+  w.scrollIntoView({behavior:'smooth'});
+}
+function showError(msg) {
+  const el = document.getElementById('err-txt');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('prog-wrap').style.display = 'none';
+}
+function resetBtn() {
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = false;
+  btn.innerHTML = '<span>Generate WAV</span>';
+}
+
+/* Top status hook */
+(function(){
+  const gs = document.getElementById('gen-status');
+  const gsState = document.getElementById('gs-state');
+  if (!gs || !gsState) return;
+  const STATES = {
+    idle:'Готовий до генерації',
+    processing:'Генерація',
+    done:'Готово · файли доступні',
+    error:'Помилка обробки',
+  };
+  function setState(name, extra){
+    gs.dataset.state = name;
+    gsState.textContent = (STATES[name] || name) + (extra ? ' · ' + extra : '');
+  }
+  const fill = document.getElementById('prog-fill');
+  const dl = document.getElementById('dl-wrap');
+  const err = document.getElementById('err-txt');
+  const btn = document.getElementById('btn-gen');
+  if (fill) new MutationObserver(()=>{
+    const w = parseFloat(fill.style.width) || 0;
+    if (btn && btn.disabled && w < 100) setState('processing', Math.round(w) + '%');
+    else if (w >= 100) setState('done');
+  }).observe(fill, {attributes:true, attributeFilter:['style']});
+  if (dl) new MutationObserver(()=>{
+    if (dl.style.display && dl.style.display !== 'none') setState('done');
+  }).observe(dl, {attributes:true, attributeFilter:['style']});
+  if (err) new MutationObserver(()=>{
+    if (err.style.display && err.style.display !== 'none') setState('error');
+  }).observe(err, {attributes:true, attributeFilter:['style']});
+  if (btn) new MutationObserver(()=>{
+    if (!btn.disabled && gs.dataset.state === 'processing') setState('idle');
+  }).observe(btn, {attributes:true, attributeFilter:['disabled']});
+})();
+
+/* Tweaks */
+(function(){
+  const TWEAKS = /*EDITMODE-BEGIN*/{
+    "intensity": 80
+  }/*EDITMODE-END*/;
+  function applyIntensity(v){
+    const blur = document.querySelector('#goo feGaussianBlur');
+    if (blur) blur.setAttribute('stdDeviation', String(v / 10));
+    document.querySelectorAll('#tweaks-panel .opt').forEach(o=>{
+      o.classList.toggle('active', Number(o.dataset.intensity) === Number(v));
+    });
+  }
+  applyIntensity(TWEAKS.intensity);
+  const panel = document.getElementById('tweaks-panel');
+  window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    if (e.data.type === '__activate_edit_mode') panel.style.display = 'block';
+    if (e.data.type === '__deactivate_edit_mode') panel.style.display = 'none';
+  });
+  try { window.parent && window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch(_) {}
+  panel.querySelectorAll('.opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const v = Number(opt.dataset.intensity);
+      applyIntensity(v);
+      try { window.parent.postMessage({type:'__edit_mode_set_keys', edits:{intensity: v}}, '*'); } catch(_) {}
+    });
+  });
+})();
+</script>
+</body>
+</html>

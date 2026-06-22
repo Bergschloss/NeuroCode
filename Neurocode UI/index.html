@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Neurocode Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+/* =====================================================
+   NEUROCODE STUDIO · Editorial Monochrome
+   Pure black canvas · Swiss type · liquid marble hero
+   ===================================================== */
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#000;
+  --ink:#fff;
+  --ink-2:#bdbdbd;
+  --ink-3:#7a7a7a;
+  --ink-4:#3a3a3a;
+  --rule:#222;
+  --rule-strong:#3a3a3a;
+  --hair:#161616;
+
+  --t-display:'Inter',Helvetica,Arial,sans-serif;
+  --t-mono:'Space Mono','JetBrains Mono',monospace;
+  --t-jp:'Noto Serif JP',serif;
+}
+
+html,body{background:var(--bg);color:var(--ink)}
+body{
+  font-family:var(--t-display);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"ss01","cv11";
+}
+
+::selection{background:var(--ink);color:#000}
+
+/* Generic hairline rule */
+.rule{display:block;width:100%;height:1px;background:var(--rule);border:0;margin:0}
+.rule-strong{background:var(--rule-strong)}
+
+/* ---------- Container ---------- */
+.app{
+  max-width:1280px;margin:0 auto;
+  padding:32px 40px 80px;
+  position:relative;
+  isolation:isolate;
+}
+
+/* ---------- Topbar (replaces old status pill, full-width) ---------- */
+.topbar{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;gap:24px;
+  padding:14px 0;
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+  font-family:var(--t-mono);
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:40px;
+}
+.topbar-left{display:flex;align-items:center;gap:18px}
+.topbar-center{display:flex;align-items:center;gap:14px;justify-content:center}
+.topbar-right{display:flex;align-items:center;gap:18px;justify-content:flex-end}
+.topbar .sep{color:var(--ink-4)}
+.topbar .val{color:var(--ink)}
+
+/* Status indicator */
+.gen-status{
+  display:inline-flex;align-items:center;gap:10px;
+}
+.gen-status .gs-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--ink);
+  box-shadow:0 0 0 0 rgba(255,255,255,.7);
+  animation:livepulse 1.8s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes livepulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}
+  50%{box-shadow:0 0 0 6px rgba(255,255,255,0)}
+}
+.gs-state{color:var(--ink)}
+.gen-status[data-state="processing"] .gs-dot{animation-duration:.6s}
+.gen-status[data-state="error"] .gs-dot{background:#fff;animation:none;box-shadow:0 0 0 1px #fff}
+
+/* ---------- Hero (masthead + liquid marble) ---------- */
+.hero{
+  position:relative;
+  display:grid;grid-template-columns:minmax(280px, 460px) 1fr;
+  gap:32px;
+  min-height:520px;
+  margin-bottom:64px;
+  border-bottom:1px solid var(--rule);
+  padding-bottom:24px;
+}
+.masthead{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;
+  gap:18px;
+  padding-top:8px;
+}
+.masthead .brand-symbol{
+  width:160px;height:160px;
+  display:block;margin:-6px 0 4px;
+}
+.masthead .brand-symbol svg{width:100%;height:100%;display:block}
+.masthead .dash{
+  width:48px;height:1px;background:var(--ink);margin:4px 0;
+}
+.masthead .dates{
+  font-family:var(--t-mono);font-size:13px;font-weight:400;
+  color:var(--ink);letter-spacing:.04em;
+}
+.masthead .brand-title{
+  font-family:var(--t-display);
+  font-size:24px;font-weight:700;letter-spacing:.02em;
+  color:var(--ink);text-transform:uppercase;
+  margin-top:22px;
+}
+.masthead .meta{
+  font-family:var(--t-mono);
+  font-size:11px;line-height:1.6;letter-spacing:.06em;
+  color:var(--ink-2);text-transform:uppercase;
+  margin-top:6px;
+}
+.masthead .ticks{
+  display:flex;align-items:flex-end;gap:18px;margin-top:18px;
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.1em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.masthead .ticks span{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.masthead .ticks span::before{
+  content:"";width:1px;height:6px;background:var(--ink-3);
+}
+.masthead .ticks span.active::before{height:10px;background:var(--ink)}
+.masthead .ticks span.active{color:var(--ink)}
+.masthead .scale-pointer{
+  display:flex;align-items:center;gap:10px;margin-top:14px;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-2);
+}
+.masthead .scale-pointer .arrow{
+  display:inline-block;width:0;height:0;
+  border-left:6px solid var(--ink);
+  border-top:4px solid transparent;border-bottom:4px solid transparent;
+}
+
+/* Vertical BT scale (B/T labels with major/minor ticks) */
+.bt-scale{
+  position:absolute;left:-24px;top:120px;
+  display:flex;flex-direction:column;gap:24px;
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.14em;
+  color:var(--ink-3);text-transform:uppercase;
+  z-index:3;
+}
+.bt-scale .row{display:flex;align-items:center;gap:8px}
+.bt-scale .tick{display:inline-block;width:7px;height:1px;background:var(--ink-3)}
+.bt-scale .row.major .tick{background:var(--ink)}
+.bt-scale .row.major{color:var(--ink)}
+.bt-scale .point{
+  display:inline-block;width:0;height:0;
+  border-left:6px solid var(--ink);
+  border-top:4px solid transparent;border-bottom:4px solid transparent;
+  margin-right:6px;
+}
+
+/* Liquid marble */
+.marble{
+  position:relative;
+  overflow:hidden;
+  border-radius:0;
+  align-self:stretch;
+  min-height:520px;
+}
+.marble svg{display:block;width:100%;height:100%;min-height:520px}
+.marble::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg, rgba(0,0,0,.4), transparent 30%, transparent 70%, rgba(0,0,0,.6));
+}
+.marble-tag{
+  position:absolute;right:12px;bottom:12px;z-index:2;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;
+}
+.marble-tag::before{content:"";display:inline-block;width:8px;height:1px;background:var(--ink-2);vertical-align:middle;margin-right:8px}
+
+/* ---------- Section ---------- */
+.section{margin-bottom:64px;position:relative}
+.section-head{
+  display:grid;grid-template-columns:80px 1fr auto;gap:24px;align-items:baseline;
+  padding-bottom:14px;border-bottom:1px solid var(--rule);
+  margin-bottom:24px;
+}
+.section-num{
+  font-family:var(--t-mono);font-size:11px;font-weight:700;letter-spacing:.16em;
+  color:var(--ink);text-transform:uppercase;
+}
+.section-title{
+  font-family:var(--t-display);font-size:13px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink);
+}
+.section-meta{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.section-desc{
+  margin-left:104px;max-width:680px;
+  font-family:var(--t-display);font-size:13px;line-height:1.6;
+  color:var(--ink-2);margin-bottom:24px;
+}
+
+/* ---------- Form layout ---------- */
+.field{
+  display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:start;
+  padding:14px 0;border-top:1px solid var(--hair);
+}
+.field:first-child{border-top:0}
+.field-label{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-3);text-transform:uppercase;padding-top:8px;
+}
+.field-label .num{color:var(--ink);font-weight:700}
+.field-body{min-width:0}
+.field-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+
+/* Textarea */
+textarea{
+  width:100%;
+  background:transparent;
+  border:1px solid var(--rule);
+  color:var(--ink);
+  font-family:var(--t-display);
+  font-size:15px;line-height:1.7;font-weight:400;
+  padding:16px 18px;resize:vertical;outline:none;
+  transition:border-color .2s;
+  border-radius:0;
+}
+textarea::placeholder{color:var(--ink-4);font-style:normal}
+textarea:focus{border-color:var(--ink)}
+
+/* Select */
+.sel-wrap{position:relative;display:inline-block;min-width:200px}
+.sel-wrap::after{
+  content:"";position:absolute;right:14px;top:50%;
+  width:0;height:0;
+  border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:5px solid var(--ink-2);
+  transform:translateY(-50%);pointer-events:none;
+}
+select{
+  width:100%;background:transparent;
+  border:1px solid var(--rule);border-radius:0;
+  color:var(--ink);font-family:var(--t-display);
+  font-size:13px;font-weight:500;
+  padding:11px 36px 11px 14px;
+  outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  transition:border-color .2s;
+  letter-spacing:.02em;
+}
+select:hover{border-color:var(--ink-2)}
+select:focus{border-color:var(--ink)}
+select option{background:#000;color:var(--ink);padding:8px}
+
+/* Slider */
+.slider-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+.slider-meta{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.slider-meta .v{color:var(--ink);font-weight:700;letter-spacing:.06em}
+.slider-meta .desc{color:var(--ink-3)}
+.slider-track{position:relative;padding:6px 0}
+input[type=range]{
+  width:100%;height:14px;background:transparent;cursor:pointer;
+  outline:none;border:none;
+  appearance:none;-webkit-appearance:none;
+  --pct:50%;
+  position:relative;z-index:2;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:1px;background:linear-gradient(90deg, var(--ink) 0%, var(--ink) var(--pct), var(--rule) var(--pct), var(--rule) 100%);
+}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;
+  width:2px;height:14px;border-radius:0;
+  background:var(--ink);
+  cursor:pointer;
+  margin-top:-7px;
+  transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{
+  transform:scaleX(3);
+}
+input[type=range]::-moz-range-track{height:1px;background:var(--rule);border:none;border-radius:0}
+input[type=range]::-moz-range-progress{height:1px;background:var(--ink);border-radius:0}
+input[type=range]::-moz-range-thumb{
+  width:2px;height:14px;border-radius:0;background:var(--ink);border:none;
+}
+/* Slider tick scale */
+.slider-ticks{
+  display:flex;justify-content:space-between;
+  font-family:var(--t-mono);font-size:8px;letter-spacing:.1em;
+  color:var(--ink-4);text-transform:uppercase;
+  margin-top:4px;
+}
+.slider-ticks span{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.slider-ticks span::before{
+  content:"";width:1px;height:3px;background:var(--ink-4);
+}
+
+/* Toggle */
+.switch{
+  position:relative;display:inline-block;
+  width:44px;height:20px;flex-shrink:0;
+}
+.switch input{opacity:0;width:0;height:0}
+.slider{
+  position:absolute;inset:0;cursor:pointer;
+  background:transparent;
+  border:1px solid var(--rule);
+  transition:.25s;
+}
+.slider::before{
+  content:"";position:absolute;
+  width:14px;height:14px;
+  left:2px;top:50%;transform:translateY(-50%);
+  background:var(--ink-3);
+  transition:.25s ease;
+}
+.switch:hover .slider{border-color:var(--ink-2)}
+.switch input:checked + .slider{border-color:var(--ink);background:var(--ink)}
+.switch input:checked + .slider::before{transform:translate(22px,-50%);background:#000}
+
+/* Language chips */
+.lang-preview{display:flex;gap:6px;flex-wrap:wrap;min-height:18px;margin-top:10px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 10px;border:1px solid var(--ink);
+  font-family:var(--t-mono);font-size:9px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink);background:transparent;
+  animation:chipIn .3s ease;
+}
+@keyframes chipIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.chip-uk{} .chip-ru{} .chip-en{}
+.chip-uk::before{content:"·"; color:var(--ink-3)}
+.chip-ru::before{content:"·"; color:var(--ink-3)}
+.chip-en::before{content:"·"; color:var(--ink-3)}
+
+/* Info row under text */
+.info-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--ink-3);text-transform:uppercase;
+  margin-top:10px;
+}
+.info-row #count-main{color:var(--ink-2)}
+.info-row #dur-main{color:var(--ink);font-weight:700}
+
+/* Pipeline diagram (editorial) */
+.pipeline{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  align-items:center;gap:0;
+  padding:24px 0;margin-bottom:24px;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+}
+.flow-block{
+  text-align:center;padding:0 14px;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-2);
+}
+.flow-block .fb-name{
+  font-family:var(--t-display);font-size:13px;letter-spacing:.02em;
+  font-weight:600;color:var(--ink);text-transform:uppercase;
+  display:block;margin-bottom:6px;
+}
+.flow-block .fb-sub{
+  font-size:9px;letter-spacing:.14em;color:var(--ink-3);
+}
+.flow-arrow{
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink-3);
+}
+.flow-arrow svg{width:100%;height:14px;max-width:80px}
+
+/* Voice grid */
+.voice-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:0;border-top:1px solid var(--hair);
+}
+.lang-group{
+  padding:18px 20px;
+  border-left:1px solid var(--hair);
+}
+.lang-group:first-child{border-left:0;padding-left:0}
+.lang-group label{
+  display:block;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-3);text-transform:uppercase;margin-bottom:8px;
+}
+.lang-group label .lg-num{color:var(--ink)}
+
+/* Notch EQ — premium editorial row */
+#notch-row{
+  display:grid;grid-template-columns:auto 1fr auto;
+  gap:24px;align-items:center;
+  padding:22px 0;margin-top:24px;
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  position:relative;
+}
+#notch-row::before{
+  content:"NOTCH · EQ";position:absolute;top:-7px;left:0;
+  background:#000;padding:0 10px 0 0;
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.3em;
+  color:var(--ink);
+}
+.notch-icon{
+  width:84px;height:64px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink);
+}
+.notch-icon svg{width:100%;height:100%}
+.notch-body{min-width:0}
+.notch-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.notch-title{
+  font-family:var(--t-display);font-size:16px;font-weight:600;
+  letter-spacing:.02em;color:var(--ink);text-transform:uppercase;
+}
+.notch-tag{
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.22em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.notch-tag::before{content:"//";margin-right:6px;color:var(--ink-4)}
+#notch-desc{
+  font-family:var(--t-display);font-size:12px;line-height:1.6;
+  color:var(--ink-2);max-width:520px;
+}
+#notch-desc strong{color:var(--ink);font-weight:600;font-family:var(--t-mono);letter-spacing:.04em}
+#notch-desc em{color:var(--ink-3);font-style:normal}
+
+/* ---------- Generate button ---------- */
+.action{
+  margin-top:64px;
+  padding-top:24px;border-top:1px solid var(--rule-strong);
+  display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;
+}
+.action-meta{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.action-meta strong{color:var(--ink)}
+.btn-generate{
+  position:relative;
+  display:inline-flex;align-items:center;gap:16px;
+  padding:18px 32px;
+  background:var(--ink);color:#000;
+  border:1px solid var(--ink);
+  font-family:var(--t-display);
+  font-size:13px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  cursor:pointer;border-radius:0;
+  transition:background .15s, color .15s;
+  min-width:280px;justify-content:space-between;
+  overflow:hidden;
+}
+.btn-generate::before{
+  content:"→";font-family:var(--t-mono);font-size:18px;
+  transition:transform .25s ease;
+}
+.btn-generate:hover:not(:disabled){background:transparent;color:var(--ink)}
+.btn-generate:hover:not(:disabled)::before{transform:translateX(6px)}
+.btn-generate:disabled{
+  background:transparent;color:var(--ink-3);border-color:var(--rule-strong);
+  cursor:not-allowed;
+}
+.btn-generate .bg-icon{display:none}
+.btn-generate > span:not(.bg-icon){flex:1;text-align:left}
+
+/* ---------- Progress (editorial) ---------- */
+.progress-wrap{
+  display:none;margin-top:32px;
+  padding-top:22px;border-top:1px solid var(--rule);
+}
+.progress-label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.18em;
+  color:var(--ink-2);text-transform:uppercase;margin-bottom:10px;
+}
+#prog-pct{
+  font-family:var(--t-display);font-size:22px;font-weight:700;
+  letter-spacing:-.01em;color:var(--ink);
+}
+.progress-bar{
+  height:1px;background:var(--rule);position:relative;
+}
+.progress-fill{
+  height:1px;background:var(--ink);width:0%;
+  transition:width .4s ease;
+  position:relative;
+}
+.progress-fill::after{
+  content:"";position:absolute;right:-1px;top:-3px;
+  width:1px;height:7px;background:var(--ink);
+}
+/* progress scale */
+.progress-ticks{
+  display:flex;justify-content:space-between;
+  font-family:var(--t-mono);font-size:9px;letter-spacing:.14em;
+  color:var(--ink-4);margin-top:6px;text-transform:uppercase;
+}
+.progress-ticks span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.progress-ticks span::before{content:"";width:1px;height:3px;background:var(--ink-4)}
+.status-text{
+  font-family:var(--t-mono);font-size:11px;letter-spacing:.06em;
+  color:var(--ink-2);margin-top:18px;text-align:left;
+  text-transform:none;
+}
+
+/* ---------- Downloads ---------- */
+.download-wrap{
+  display:none;margin-top:32px;
+  grid-template-columns:1fr 1fr;gap:0;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  animation:dropIn .4s ease;
+}
+@keyframes dropIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.btn-download{
+  display:flex;flex-direction:column;gap:14px;
+  padding:24px 24px;
+  text-decoration:none;color:var(--ink);
+  border-left:1px solid var(--rule);
+  transition:background .15s, color .15s;
+  position:relative;
+  font-family:var(--t-display);
+}
+.btn-download:first-child{border-left:0}
+.btn-download:hover{background:var(--ink);color:#000}
+.btn-download .dl-label{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:10px;
+}
+.btn-download:hover .dl-label{color:#000}
+.btn-download .dl-label::before{
+  content:"";display:inline-block;width:14px;height:1px;background:currentColor;
+}
+.btn-download .dl-main{
+  font-size:22px;font-weight:600;letter-spacing:-.005em;
+  line-height:1.15;text-transform:none;
+}
+.btn-download .dl-icon{
+  position:absolute;top:24px;right:24px;
+  font-family:var(--t-mono);font-size:20px;font-weight:700;
+  transition:transform .25s ease;
+}
+.btn-download:hover .dl-icon{transform:translate(4px,-4px)}
+
+.error-text{
+  color:var(--ink);font-family:var(--t-mono);
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  text-align:left;margin-top:18px;display:none;
+  padding:14px 16px;border:1px solid var(--ink);
+}
+
+/* ---------- Footer ---------- */
+.footer{
+  margin-top:80px;padding-top:24px;
+  border-top:1px solid var(--rule);
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--ink-3);text-transform:uppercase;line-height:1.7;
+}
+.footer h4{
+  font-family:var(--t-mono);font-size:10px;font-weight:700;
+  color:var(--ink);letter-spacing:.2em;margin-bottom:8px;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width:760px){
+  .app{padding:20px 18px 60px}
+  .topbar{grid-template-columns:1fr;text-align:center;gap:10px;font-size:9px}
+  .topbar-left,.topbar-center,.topbar-right{justify-content:center}
+  .hero{grid-template-columns:1fr;min-height:auto;gap:24px}
+  .marble{min-height:280px}
+  .marble svg{min-height:280px}
+  .masthead .jp{font-size:48px}
+  .bt-scale{position:static;flex-direction:row;flex-wrap:wrap;margin-top:12px}
+  .section-head{grid-template-columns:50px 1fr;gap:14px}
+  .section-meta{display:none}
+  .section-desc{margin-left:0}
+  .field{grid-template-columns:1fr;gap:12px}
+  .field-label{padding-top:0}
+  .pipeline{grid-template-columns:1fr;gap:14px}
+  .flow-arrow{transform:rotate(90deg);margin:0 auto}
+  .voice-grid{grid-template-columns:1fr}
+  .lang-group{border-left:0;border-top:1px solid var(--hair);padding:14px 0}
+  .lang-group:first-child{border-top:0}
+  #notch-row{grid-template-columns:1fr;gap:16px;padding:18px 0}
+  .action{grid-template-columns:1fr;gap:16px}
+  .btn-generate{width:100%}
+  .download-wrap{grid-template-columns:1fr}
+  .btn-download{border-left:0;border-top:1px solid var(--rule)}
+  .btn-download:first-child{border-top:0}
+  .footer{grid-template-columns:1fr;gap:20px}
+}
+
+/* Tweaks panel hook */
+#tweaks-panel{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  width:240px;padding:14px;
+  background:#000;border:1px solid var(--ink);
+  display:none;
+}
+#tweaks-panel h4{font-family:var(--t-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);margin-bottom:10px}
+#tweaks-panel .opts{display:flex;flex-direction:column;gap:6px}
+#tweaks-panel .opt{
+  font-family:var(--t-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  padding:6px 10px;border:1px solid var(--rule);cursor:pointer;color:var(--ink-2);
+}
+#tweaks-panel .opt:hover{border-color:var(--ink-2);color:var(--ink)}
+#tweaks-panel .opt.active{border-color:var(--ink);color:var(--ink);background:var(--ink);color:#000}
+</style>
+</head>
+<body>
+
+<!-- Shared SVG defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="liquify" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.018" numOctaves="3" seed="7" result="noise">
+        <animate attributeName="baseFrequency" dur="38s" values="0.006 0.018; 0.009 0.022; 0.006 0.018" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="180" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="liquify2" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.04" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="40"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- TOP BAR (status + meta) -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="gen-status" id="gen-status" data-state="idle">
+        <span class="gs-dot"></span>
+        <span class="gs-state" id="gs-state">Готовий до генерації</span>
+      </span>
+    </div>
+    <div class="topbar-center">
+      <span>Neurocode Studio</span>
+      <span class="sep">/</span>
+      <span class="val">NCS · 02</span>
+      <span class="sep">/</span>
+      <span>Engine v2.6</span>
+    </div>
+    <div class="topbar-right">
+      <span>48 kHz</span>
+      <span class="sep">/</span>
+      <span>Stereo</span>
+      <span class="sep">/</span>
+      <span class="val" id="gs-engine">PCM·16</span>
+    </div>
+  </div>
+
+  <!-- HERO MASTHEAD -->
+  <section class="hero">
+    <div class="bt-scale" aria-hidden="true">
+      <div class="row"><span class="tick"></span><span>2</span></div>
+      <div class="row"><span class="tick"></span><span>5</span></div>
+      <div class="row"><span class="tick"></span><span>10</span></div>
+      <div class="row"><span class="tick"></span><span>25</span></div>
+      <div class="row major"><span class="point"></span><span class="tick"></span><span>50</span></div>
+      <div class="row"><span class="tick"></span><span>100</span></div>
+      <div class="row"><span class="tick"></span><span>150</span></div>
+      <div class="row"><span class="tick"></span><span>B</span></div>
+      <div class="row"><span class="tick"></span><span>T</span></div>
+    </div>
+
+    <div class="masthead">
+      <div class="brand-symbol" aria-label="Neurocode Studio mark">
+        <svg id="grid-pulse" viewBox="0 0 170 170" aria-hidden="true"></svg>
+      </div>
+      <span class="dash"></span>
+      <div class="dates">02.10 — 03.30 / v2.6</div>
+
+      <div class="brand-title">NEUROCODE STUDIO</div>
+      <div class="meta">
+        Presenting<br/>
+        Psychoacoustic AM-encoding<br/>
+        Multi-language · large format
+      </div>
+
+      <div class="ticks" aria-hidden="true">
+        <span><br/>1</span>
+        <span><br/>2</span>
+        <span class="active"><br/>3</span>
+        <span><br/>4</span>
+        <span><br/>5</span>
+        <span><br/>6</span>
+        <span><br/>7</span>
+      </div>
+      <div class="scale-pointer"><span class="arrow"></span>STAGE · 03 · AM</div>
+    </div>
+
+    <div class="marble" aria-hidden="true">
+      <svg viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice">
+        <g filter="url(#liquify)" stroke="#fff" fill="none" stroke-width=".55">
+          <g id="lines"></g>
+        </g>
+      </svg>
+      <span class="marble-tag">Signal · 03 / Large format</span>
+    </div>
+  </section>
+
+  <!-- SECTION 01 — TEXT INPUT -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-num">01 / 03</div>
+      <div class="section-title">Текст афірмацій · Affirmation source</div>
+      <div class="section-meta">Multi-thread · AM-encoded</div>
+    </header>
+    <div class="section-desc">
+      Кодування афірмацій — AM-модуляція по всьому спектру. Обов'язковий блок ядра генерації. Підтримує українську, російську та англійську мови з авто-сегментацією.
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">01·a</span><br/>Мова потоку</div>
+      <div class="field-body">
+        <div class="sel-wrap">
+          <select id="lang-main" onchange="onInput('main')">
+            <option value="auto" selected>Auto / автодетект за текстом</option>
+            <option value="ru">Російська · RU</option>
+            <option value="uk">Українська · UK</option>
+            <option value="en">English · EN</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">01·b</span><br/>Текст</div>
+      <div class="field-body">
+        <textarea id="text-main" rows="8" oninput="onInput('main')"
+          placeholder="Я здоровий і сильний&#10;Моє тіло ідеально здорове&#10;Моё тело полно энергии&#10;I am confident and successful&#10;Я досягаю всіх своїх цілей&#10;Всесвіт підтримує мене..."></textarea>
+        <div class="info-row">
+          <span id="count-main">0 символів</span>
+          <span id="dur-main">—</span>
+        </div>
+        <div class="lang-preview" id="preview-main"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 02 — VOICE -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-num">02 / 03</div>
+      <div class="section-title">Голос для кожної мови · Voice cast</div>
+      <div class="section-meta">Neural TTS · 3 languages</div>
+    </header>
+
+    <div class="voice-grid">
+      <div class="lang-group">
+        <label><span class="lg-num">UK · </span>Українська</label>
+        <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+          <select id="voice-uk">
+            <option value="uk-UA-PolinaNeural">Поліна · жіночий</option>
+            <option value="uk-UA-OstapNeural">Остап · чоловічий</option>
+          </select>
+        </div>
+      </div>
+      <div class="lang-group">
+        <label><span class="lg-num">RU · </span>Російська</label>
+        <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+          <select id="voice-ru">
+            <option value="ru-RU-SvetlanaNeural">Світлана · жіночий</option>
+            <option value="ru-RU-DmitryNeural">Дмитро · чоловічий</option>
+          </select>
+        </div>
+      </div>
+      <div class="lang-group">
+        <label><span class="lg-num">EN · </span>English</label>
+        <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+          <select id="voice-en">
+            <option value="en-US-AriaNeural">Aria · female</option>
+            <option value="en-US-GuyNeural">Guy · male</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 03 — PARAMS -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-num">03 / 03</div>
+      <div class="section-title">Параметри кодування · Encoder params</div>
+      <div class="section-meta">DSP · ambient · binaural</div>
+    </header>
+
+    <!-- Pipeline -->
+    <div class="pipeline">
+      <div class="flow-block">
+        <span class="fb-name">Pause</span>
+        <span class="fb-sub">intro · silence</span>
+      </div>
+      <div class="flow-arrow">
+        <svg viewBox="0 0 80 14" preserveAspectRatio="none">
+          <line x1="0" y1="7" x2="74" y2="7" stroke="currentColor" stroke-width="1"/>
+          <path d="M74 3 L80 7 L74 11" stroke="currentColor" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div class="flow-block">
+        <span class="fb-name" style="color:#fff">Affirmation</span>
+        <span class="fb-sub">multi-layer · AM</span>
+      </div>
+      <div class="flow-arrow">
+        <svg viewBox="0 0 80 14" preserveAspectRatio="none">
+          <line x1="0" y1="7" x2="74" y2="7" stroke="currentColor" stroke-width="1"/>
+          <path d="M74 3 L80 7 L74 11" stroke="currentColor" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div class="flow-block">
+        <span class="fb-name">Pause</span>
+        <span class="fb-sub">outro · silence</span>
+      </div>
+    </div>
+
+    <!-- Encoder core -->
+    <div class="field">
+      <div class="field-label"><span class="num">03·a</span><br/>Шари / Layers</div>
+      <div class="field-body">
+        <div class="slider-block">
+          <div class="slider-meta"><span class="desc">04 ── 32 · step 2</span><span class="v" id="lbl-layers">24</span></div>
+          <div class="slider-track">
+            <input type="range" id="layers" min="4" max="32" step="2" value="24" oninput="sync(this,'lbl-layers')"/>
+          </div>
+          <div class="slider-ticks"><span>04</span><span>10</span><span>16</span><span>22</span><span>28</span><span>32</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·b</span><br/>Прискорення</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Min · Block 02</span><span class="v" id="lbl-smin">3x</span></div>
+            <div class="slider-track">
+              <input type="range" id="speed-min" min="2" max="9" step="0.5" value="3" oninput="sync(this,'lbl-smin','x')"/>
+            </div>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Max · Block 02</span><span class="v" id="lbl-smax">7x</span></div>
+            <div class="slider-track">
+              <input type="range" id="speed-max" min="3" max="10" step="0.5" value="7" oninput="sync(this,'lbl-smax','x')"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·c</span><br/>Тиша · Silences</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Pause · intro</span><span class="v" id="lbl-sil-start">0.0с</span></div>
+            <div class="slider-track">
+              <input type="range" id="sil-start" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-start','с')"/>
+            </div>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Pause · outro</span><span class="v" id="lbl-sil-end">0.0с</span></div>
+            <div class="slider-track">
+              <input type="range" id="sil-end" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-end','с')"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·d</span><br/>Ambient · noise</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end">
+          <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+            <select id="noise-type">
+              <option value="none">— Вимкнено</option>
+              <option value="pink">Pink · Рожевий шум</option>
+              <option value="sea">Sea · Шум моря</option>
+              <option value="rain">Rain · Шум дощу</option>
+            </select>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-noise-vol">-12дБ</span></div>
+            <div class="slider-track">
+              <input type="range" id="noise-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-noise-vol','дБ')"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·e</span><br/>Binaural · brain</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end">
+          <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+            <select id="binaural-type">
+              <option value="none">— Вимкнено</option>
+              <option value="theta" selected>Theta · 04 Hz · Meditation</option>
+              <option value="alpha">Alpha · 10 Hz · Focus</option>
+              <option value="delta">Delta · 02 Hz · Sleep / Repair</option>
+              <option value="beta">Beta · 15 Hz · Activity</option>
+            </select>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-binaural-vol">-12дБ</span></div>
+            <div class="slider-track">
+              <input type="range" id="binaural-volume" min="-30" max="-6" step="1" value="-12" oninput="sync(this,'lbl-binaural-vol','дБ')"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span class="num">03·f</span><br/>Music bed</div>
+      <div class="field-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end">
+          <div class="sel-wrap" style="min-width:0;display:block;width:100%">
+            <select id="music-type">
+              <option value="none">— Вимкнено</option>
+            </select>
+          </div>
+          <div class="slider-block">
+            <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-music-vol">-12дБ</span></div>
+            <div class="slider-track">
+              <input type="range" id="music-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-music-vol','дБ')"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTCH EQ -->
+    <div id="notch-row">
+      <div class="notch-icon" aria-hidden="true">
+        <!-- Editorial monochrome: frequency response with surgical notch -->
+        <svg viewBox="0 0 120 70" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <!-- baseline -->
+          <line x1="4" y1="58" x2="116" y2="58" stroke-width=".6" opacity=".5"/>
+          <!-- frequency ticks on baseline -->
+          <g stroke-width=".6" opacity=".5">
+            <line x1="12" y1="58" x2="12" y2="62"/>
+            <line x1="28" y1="58" x2="28" y2="62"/>
+            <line x1="44" y1="58" x2="44" y2="62"/>
+            <line x1="60" y1="58" x2="60" y2="64"/>
+            <line x1="76" y1="58" x2="76" y2="62"/>
+            <line x1="92" y1="58" x2="92" y2="62"/>
+            <line x1="108" y1="58" x2="108" y2="62"/>
+          </g>
+          <!-- response curve carved at center -->
+          <path d="M4 38 Q 24 32 32 32 Q 50 32 54 42 L 60 56 L 66 42 Q 70 32 88 32 Q 96 32 116 38" stroke-width="1.2"/>
+          <!-- marker line -->
+          <line x1="60" y1="6" x2="60" y2="28" stroke-width=".8"/>
+          <circle cx="60" cy="4" r="2" fill="currentColor"/>
+          <!-- frequency label hairlines -->
+          <text x="60" y="68" text-anchor="middle" font-family="Space Mono" font-size="5" fill="currentColor" opacity=".7">f₀</text>
+        </svg>
+      </div>
+      <div class="notch-body">
+        <div class="notch-head">
+          <div class="notch-title">Хірургічний Notch EQ</div>
+          <div class="notch-tag">Pro · Q=30 · 04–05 Hz</div>
+        </div>
+        <div id="notch-desc">Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. Активно лише при бінауральному ритмі + музиці.</div>
+      </div>
+      <label class="switch" title="Notch EQ">
+        <input type="checkbox" id="notch-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ACTION -->
+  <div class="action">
+    <div class="action-meta">
+      Output · <strong>WAV / 48kHz / Stereo</strong><br/>
+      Composer-grade encoding · long-form
+    </div>
+    <button class="btn-generate" id="btn-gen" onclick="generate()">
+      <span>Generate WAV</span>
+    </button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="progress-label"><span id="prog-stage">Обробка...</span><span id="prog-pct">0%</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="progress-ticks"><span>00</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    <div class="status-text" id="status-txt">Підготовка...</div>
+  </div>
+
+  <div class="error-text" id="err-txt"></div>
+
+  <!-- DOWNLOADS -->
+  <div class="download-wrap" id="dl-wrap">
+    <a class="btn-download" id="dl-link" href="#" download>
+      <span class="dl-label">File · 01 / Encoded</span>
+      <span class="dl-main">Завантажити<br/>кодований WAV</span>
+      <span class="dl-icon">↗</span>
+    </a>
+    <a class="btn-download" id="dl-raw-link" href="#" download>
+      <span class="dl-label">File · 02 / Raw voice</span>
+      <span class="dl-main">Завантажити<br/>ісходний голос</span>
+      <span class="dl-icon">↗</span>
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div>
+      <h4>Studio</h4>
+      Neurocode Studio<br/>
+      Psychoacoustic affirmation engine<br/>
+      Build · 2026.05
+    </div>
+    <div>
+      <h4>Engine</h4>
+      AM modulation · multi-layer<br/>
+      Binaural · θ α δ β<br/>
+      Notch · Q=30 · surgical
+    </div>
+    <div>
+      <h4>Format</h4>
+      WAV · 48 kHz · 16-bit · stereo<br/>
+      Long-form · up to 60 min<br/>
+      Composer-grade
+    </div>
+  </footer>
+</div>
+
+<!-- Tweaks (host-only) -->
+<div id="tweaks-panel">
+  <h4>Marble · intensity</h4>
+  <div class="opts">
+    <div class="opt active" data-intensity="180">Standard · 180</div>
+    <div class="opt" data-intensity="100">Calm · 100</div>
+    <div class="opt" data-intensity="260">Turbulent · 260</div>
+    <div class="opt" data-intensity="0">Off · grid only</div>
+  </div>
+</div>
+
+<script>
+/* Generate the marble line set programmatically */
+(function(){
+  const g = document.getElementById('lines');
+  if (!g) return;
+  const N = 80;
+  let html = '';
+  for (let i = 0; i < N; i++) {
+    const y = 60 + i * 6;
+    html += `<path d="M-40 ${y} L 840 ${y}" />`;
+  }
+  g.innerHTML = html;
+})();
+
+/* Brand mark: 5×5 grid pulse */
+(function(){
+  const g = document.getElementById('grid-pulse');
+  if (!g) return;
+  const SVG = 'http://www.w3.org/2000/svg';
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      const x = 18 + c * 33.5;
+      const y = 18 + r * 33.5;
+      const delay = ((r + c) * 0.15).toFixed(2) + 's';
+      const dot = document.createElementNS(SVG, 'circle');
+      dot.setAttribute('cx', x);
+      dot.setAttribute('cy', y);
+      dot.setAttribute('r', '2');
+      dot.setAttribute('fill', '#fff');
+      const aR = document.createElementNS(SVG, 'animate');
+      aR.setAttribute('attributeName', 'r');
+      aR.setAttribute('values', '1.2;5;1.2');
+      aR.setAttribute('dur', '2.5s');
+      aR.setAttribute('begin', delay);
+      aR.setAttribute('repeatCount', 'indefinite');
+      const aO = document.createElementNS(SVG, 'animate');
+      aO.setAttribute('attributeName', 'opacity');
+      aO.setAttribute('values', '.3;1;.3');
+      aO.setAttribute('dur', '2.5s');
+      aO.setAttribute('begin', delay);
+      aO.setAttribute('repeatCount', 'indefinite');
+      dot.appendChild(aR);
+      dot.appendChild(aO);
+      g.appendChild(dot);
+    }
+  }
+})();
+</script>
+
+<script>
+let pollTimer = null;
+const CPS = 14;
+
+function detectLang(t) {
+  const lo = t.toLowerCase();
+  const lat = (lo.match(/[a-z]/g)||[]).length;
+  const cyr = (lo.match(/[\u0400-\u04FF]/g)||[]).length;
+  if (lat > cyr && lat > 0) return 'en';
+  
+  const uk_m = (lo.match(/[їієґ]/g)||[]).length;
+  const ru_m = (lo.match(/[ыъэё]/g)||[]).length;
+  
+  if (uk_m > ru_m) return 'uk';
+  if (ru_m > uk_m) return 'ru';
+  
+  // Ambiguous
+  if (lo.includes('и') && !lo.includes('і')) return 'ru';
+  if (lo.includes('і') && !lo.includes('и')) return 'uk';
+  
+  return 'ru';
+}
+
+function getSegments(text, forcedLang) {
+  const parts = text.trim().split(/(?<=[.!?\n])\s+|\n+/).filter(s=>s.trim());
+  const segs = [];
+  parts.forEach(s => {
+    const lang = (forcedLang && forcedLang !== 'auto') ? forcedLang : detectLang(s);
+    if (segs.length && segs[segs.length-1].lang === lang) segs[segs.length-1].t += ' '+s;
+    else segs.push({lang, t:s});
+  });
+  return segs;
+}
+
+const LL = {uk:'UK · УКР', ru:'RU · РОС', en:'EN · ENG'};
+const CC = {uk:'chip-uk', ru:'chip-ru', en:'chip-en'};
+
+function onInput(id) {
+  const text = document.getElementById('text-'+id).value;
+  const forced = document.getElementById('lang-'+id).value;
+  document.getElementById('count-'+id).textContent = text.length + ' символів';
+  const est = text.trim().length > 0 ? Math.max(2, Math.round(text.trim().length / CPS)) : 0;
+  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}с` : '—';
+  
+  const preview = document.getElementById('preview-'+id);
+  if (!preview) return;
+  const segs = text.trim() ? getSegments(text, forced) : [];
+  preview.innerHTML = segs.map(s => `<span class="chip ${CC[s.lang]}">${LL[s.lang]}</span>`).join('');
+}
+
+function sync(el, lbl, sfx='') {
+  document.getElementById(lbl).textContent = el.value + sfx;
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+async function loadMusicTracks() {
+  const sel = document.getElementById('music-type');
+  try {
+    const tracks = await fetch('/music_tracks').then(r => r.json());
+    sel.innerHTML = '<option value="none">— Вимкнено</option>';
+    if (tracks.length === 0) {
+      const opt = document.createElement('option');
+      opt.disabled = true;
+      opt.textContent = '— Немає аудіофайлів в engine/music/';
+      sel.appendChild(opt);
+    } else {
+      tracks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.label;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {
+    console.warn('Could not load music tracks:', e);
+  }
+}
+loadMusicTracks();
+
+['layers','speed-min','speed-max','sil-start','sil-end','noise-volume','binaural-volume','music-volume'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.style.setProperty('--pct', ((el.value-el.min)/(el.max-el.min)*100)+'%');
+});
+
+const BINAURAL_FREQS = {
+  delta: { l: 136.1, r: 138.1, label: 'Дельта (2 Гц)' },
+  theta: { l: 136.1, r: 140.1, label: 'Тета (4 Гц)' },
+  alpha: { l: 136.1, r: 146.1, label: 'Альфа (10 Гц)' },
+  beta:  { l: 136.1, r: 151.1, label: 'Бета (15 Гц)' },
+};
+
+function updateNotchDesc() {
+  const type = document.getElementById('binaural-type').value;
+  const desc = document.getElementById('notch-desc');
+  if (!desc) return;
+  if (type === 'none' || !BINAURAL_FREQS[type]) {
+    desc.innerHTML = 'Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. <em>Оберіть бінауральний ритм, щоб побачити конкретні частоти.</em>';
+  } else {
+    const f = BINAURAL_FREQS[type];
+    desc.innerHTML = `Notch для <strong>${f.label}</strong>: вирізає <strong>${f.l} Гц</strong> (L) та <strong>${f.r} Гц</strong> (R) з фонового треку. Q=30 (~4–5 Гц ширина зрізу). Активно лише при бінауральному ритмі + музиці.`;
+  }
+}
+
+updateNotchDesc();
+document.getElementById('binaural-type').addEventListener('change', updateNotchDesc);
+
+async function generate() {
+  const main = document.getElementById('text-main').value.trim();
+  if (!main) { alert('Блок 2 (основний текст) обов\'язковий'); return; }
+
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.innerHTML = '<span>Processing...</span>';
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('dl-wrap').style.display = 'none';
+  document.getElementById('err-txt').style.display = 'none';
+  setProgress(5, 'Відправка запиту...');
+
+  const fd = new FormData();
+  fd.append('text_main',   main);
+  fd.append('voice_uk',    document.getElementById('voice-uk').value);
+  fd.append('voice_ru',    document.getElementById('voice-ru').value);
+  fd.append('voice_en',    document.getElementById('voice-en').value);
+  fd.append('lang_main',     document.getElementById('lang-main').value);
+  fd.append('layers',        document.getElementById('layers').value);
+  fd.append('speed_min',     document.getElementById('speed-min').value);
+  fd.append('speed_max',     document.getElementById('speed-max').value);
+  fd.append('silence_start', document.getElementById('sil-start').value);
+  fd.append('silence_end',   document.getElementById('sil-end').value);
+  fd.append('noise_type',    document.getElementById('noise-type').value);
+  fd.append('noise_volume',  document.getElementById('noise-volume').value);
+  fd.append('binaural_type',    document.getElementById('binaural-type').value);
+  fd.append('binaural_volume',  document.getElementById('binaural-volume').value);
+  fd.append('music_type',       document.getElementById('music-type').value);
+  fd.append('music_volume',     document.getElementById('music-volume').value);
+  fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
+
+  try {
+    const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());
+    pollStatus(job_id);
+  } catch(e) { showError('Помилка: '+e.message); resetBtn(); }
+}
+
+function pollStatus(job_id) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const d = await fetch('/status/'+job_id).then(r=>r.json());
+      if (d.status === 'processing') {
+        const p = d.progress || 5;
+        const msg = p < 25 ? 'Генерація TTS...'
+          : p < 90 ? `AM-кодування шарів... ${p}%`
+          : 'Нормалізація та запис WAV...';
+        setProgress(p, msg);
+      } else if (d.status === 'done') {
+        clearInterval(pollTimer);
+        setProgress(100, 'Готово.');
+        setTimeout(() => showDownload(job_id), 400);
+        resetBtn();
+      } else if (d.status === 'error') {
+        clearInterval(pollTimer);
+        showError('Помилка: ' + (d.error||'невідома'));
+        resetBtn();
+      }
+    } catch {}
+  }, 800);
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('status-txt').textContent = msg;
+}
+function showDownload(job_id) {
+  document.getElementById('dl-link').href = '/download/'+job_id;
+  document.getElementById('dl-raw-link').href = '/download_raw/'+job_id;
+  const w = document.getElementById('dl-wrap');
+  w.style.display = 'grid';
+  w.scrollIntoView({behavior:'smooth'});
+}
+function showError(msg) {
+  const el = document.getElementById('err-txt');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('prog-wrap').style.display = 'none';
+}
+function resetBtn() {
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = false;
+  btn.innerHTML = '<span>Generate WAV</span>';
+}
+
+/* ===== Top status indicator hook (read-only, no logic changes) ===== */
+(function(){
+  const gs = document.getElementById('gen-status');
+  const gsState = document.getElementById('gs-state');
+  if (!gs || !gsState) return;
+  const STATES = {
+    idle:       'Готовий до генерації',
+    processing: 'Генерація',
+    done:       'Готово · файли доступні',
+    error:      'Помилка обробки',
+  };
+  function setState(name, extra){
+    gs.dataset.state = name;
+    gsState.textContent = (STATES[name] || name) + (extra ? ' · ' + extra : '');
+  }
+  const fill = document.getElementById('prog-fill');
+  const dl = document.getElementById('dl-wrap');
+  const err = document.getElementById('err-txt');
+  const btn = document.getElementById('btn-gen');
+  if (fill) new MutationObserver(()=>{
+    const w = parseFloat(fill.style.width) || 0;
+    if (btn && btn.disabled && w < 100) setState('processing', Math.round(w) + '%');
+    else if (w >= 100) setState('done');
+  }).observe(fill, {attributes:true, attributeFilter:['style']});
+  if (dl) new MutationObserver(()=>{
+    if (dl.style.display && dl.style.display !== 'none') setState('done');
+  }).observe(dl, {attributes:true, attributeFilter:['style']});
+  if (err) new MutationObserver(()=>{
+    if (err.style.display && err.style.display !== 'none') setState('error');
+  }).observe(err, {attributes:true, attributeFilter:['style']});
+  if (btn) new MutationObserver(()=>{
+    if (!btn.disabled && gs.dataset.state === 'processing') setState('idle');
+  }).observe(btn, {attributes:true, attributeFilter:['disabled']});
+})();
+
+/* ===== Optional Tweaks (host iframe only — silent in production) ===== */
+(function(){
+  const TWEAKS = /*EDITMODE-BEGIN*/{
+    "intensity": 100
+  }/*EDITMODE-END*/;
+  function applyIntensity(v){
+    const map = document.querySelector('#liquify feDisplacementMap');
+    if (map) map.setAttribute('scale', String(v));
+    document.querySelectorAll('#tweaks-panel .opt').forEach(o=>{
+      o.classList.toggle('active', Number(o.dataset.intensity) === Number(v));
+    });
+  }
+  applyIntensity(TWEAKS.intensity);
+
+  const panel = document.getElementById('tweaks-panel');
+  window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    if (e.data.type === '__activate_edit_mode') panel.style.display = 'block';
+    if (e.data.type === '__deactivate_edit_mode') panel.style.display = 'none';
+  });
+  try { window.parent && window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch(_) {}
+
+  panel.querySelectorAll('.opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const v = Number(opt.dataset.intensity);
+      applyIntensity(v);
+      try { window.parent.postMessage({type:'__edit_mode_set_keys', edits:{intensity: v}}, '*'); } catch(_) {}
+    });
+  });
+})();
+</script>
+</body>
+</html>

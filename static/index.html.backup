@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Neurocode Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#04040c;--surface:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+  --cyan:#00d4ff;--purple:#8b5cf6;--green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:.18;animation:drift 20s ease-in-out infinite alternate}
+.orb-1{width:600px;height:600px;background:var(--cyan);top:-200px;left:-200px}
+.orb-2{width:500px;height:500px;background:var(--purple);bottom:-200px;right:-100px;animation-delay:-8s}
+.orb-3{width:300px;height:300px;background:#06b6d4;top:40%;left:50%;animation-delay:-4s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(60px,40px) scale(1.1)}}
+.app{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:40px 20px}
+.header{text-align:center;margin-bottom:48px}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:700;letter-spacing:-.02em;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.tagline{color:var(--muted);font-size:.9rem;margin-top:8px;letter-spacing:.05em;text-transform:uppercase}
+
+/* block cards */
+.block-card{border-radius:20px;padding:28px;backdrop-filter:blur(20px);margin-bottom:16px;border:1px solid}
+.block-intro{background:rgba(16,185,129,.04);border-color:rgba(16,185,129,.15)}
+.block-main{background:rgba(0,212,255,.04);border-color:rgba(0,212,255,.2)}
+.block-outro{background:rgba(139,92,246,.04);border-color:rgba(139,92,246,.15)}
+
+.block-header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.block-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.num-green{background:rgba(16,185,129,.2);color:var(--green);border:1px solid rgba(16,185,129,.4)}
+.num-cyan{background:rgba(0,212,255,.2);color:var(--cyan);border:1px solid rgba(0,212,255,.4)}
+.num-purple{background:rgba(139,92,246,.2);color:#a78bfa;border:1px solid rgba(139,92,246,.4)}
+.block-title{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:600}
+.block-badge{margin-left:auto;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.badge-single{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.badge-multi{background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.3)}
+.badge-single-end{background:rgba(139,92,246,.12);color:#a78bfa;border:1px solid rgba(139,92,246,.3)}
+.block-desc{font-size:.78rem;color:var(--muted);margin-bottom:14px;padding-left:40px}
+
+.auto-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--amber);
+  font-size:.72rem;font-weight:500;margin-bottom:10px}
+.lang-sel{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.lang-sel label{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.lang-sel select{width:auto;padding:5px 10px;font-size:.78rem;border-radius:8px}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+textarea{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:.92rem;padding:14px;resize:vertical;outline:none;
+  transition:border-color .2s;line-height:1.6}
+.block-intro textarea:focus{border-color:var(--green)}
+.block-main textarea:focus{border-color:var(--cyan)}
+.block-outro textarea:focus{border-color:#a78bfa}
+textarea::placeholder{color:var(--muted)}
+
+.info-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:.73rem;color:var(--muted)}
+.lang-preview{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;min-height:24px}
+.chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:500;border:1px solid;animation:fi .2s ease}
+.chip-uk{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--cyan)}
+.chip-ru{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#a78bfa}
+.chip-en{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green)}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+/* flow diagram */
+.flow{display:flex;align-items:center;justify-content:center;gap:8px;margin:20px 0;flex-wrap:wrap}
+.flow-block{padding:8px 16px;border-radius:10px;font-size:.78rem;font-weight:600;border:1px solid;text-align:center}
+.fb-green{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green)}
+.fb-cyan{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--cyan)}
+.fb-purple{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:#a78bfa}
+.fb-muted{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--muted);font-size:.7rem}
+.flow-arrow{color:var(--muted);font-size:1rem}
+
+/* shared card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;
+  backdrop-filter:blur(20px);margin-bottom:16px}
+.card-title{font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+
+.voice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lang-group label{display:block;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);padding:9px 12px;font-size:.875rem;outline:none;cursor:pointer;transition:border-color .2s;appearance:none}
+select:focus{border-color:var(--cyan)}
+
+.params{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.param label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:8px}
+.param label span{color:var(--cyan);font-weight:600}
+input[type=range]{width:100%;height:4px;border-radius:2px;
+  background:linear-gradient(to right,var(--cyan) 0%,var(--cyan) var(--pct,50%),var(--border) var(--pct,50%));
+  outline:none;border:none;cursor:pointer;appearance:none}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 8px var(--cyan);cursor:pointer;transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+
+.silence-note{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;
+  background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.18);margin-top:14px;font-size:.78rem;color:#a78bfa}
+
+.btn-generate{width:100%;padding:18px;border-radius:14px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;
+  font-size:1.1rem;font-weight:600;letter-spacing:.02em;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));color:#fff;
+  transition:opacity .2s,transform .15s,box-shadow .2s;margin-top:8px;
+  box-shadow:0 0 30px rgba(0,212,255,.2)}
+.btn-generate:hover:not(:disabled){opacity:.9;transform:translateY(-1px);box-shadow:0 0 50px rgba(0,212,255,.35)}
+.btn-generate:disabled{opacity:.5;cursor:not-allowed}
+
+.progress-wrap{display:none;margin-top:24px}
+.progress-label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:10px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--purple));transition:width .4s ease;width:0%;box-shadow:0 0 10px var(--cyan)}
+.status-text{text-align:center;font-size:.83rem;color:var(--muted);margin-top:10px}
+.download-wrap{display:none;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:20px}
+.btn-download{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:12px;
+  background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:var(--green);
+  font-size:1rem;font-weight:600;text-decoration:none;transition:all .2s}
+.btn-download:hover{background:rgba(16,185,129,.25);box-shadow:0 0 20px rgba(16,185,129,.3)}
+#dl-raw-link:hover{background:rgba(0,212,255,.25) !important;box-shadow:0 0 20px rgba(0,212,255,.3)}
+.btn-download svg{width:18px;height:18px}
+  .error-text{color:var(--red);font-size:.85rem;text-align:center;margin-top:12px;display:none}
+  @media(max-width:640px){.params,.voice-grid{grid-template-columns:1fr}.logo{font-size:1.8rem}}
+
+  /* Toggles */
+  .switch {
+    position: relative; display: inline-block; width: 34px; height: 18px; margin-left: auto;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0; background-color: rgba(255,255,255,.1);
+    transition: .3s; border-radius: 18px; border: 1px solid var(--border);
+  }
+  .slider:before {
+    position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px;
+    background-color: var(--muted); transition: .3s; border-radius: 50%;
+  }
+  input:checked + .slider { background-color: rgba(16,185,129,.2); border-color: var(--green); }
+  input:checked + .slider:before { transform: translateX(16px); background-color: var(--green); }
+  
+  .block-outro input:checked + .slider { background-color: rgba(139,92,246,.2); border-color: var(--purple); }
+  .block-outro input:checked + .slider:before { background-color: var(--purple); }
+
+  .block-content { transition: all .3s ease; overflow: hidden; max-height: 500px; opacity: 1; }
+  .block-card.collapsed .block-content { max-height: 0; opacity: 0; margin-top: 0; pointer-events: none; }
+  .block-card.collapsed { opacity: 0.6; padding-bottom: 14px; }
+  .block-card.collapsed .block-desc { display: none; }
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
+<div class="app">
+  <div class="header">
+    <div class="logo">⬡ NEUROCODE STUDIO</div>
+    <div class="tagline">Психоакустичний генератор підсвідомих афірмацій</div>
+  </div>
+
+  <!-- Flow diagram -->
+  <div class="flow">
+    <div class="flow-block fb-muted">🔇 пауза на початку</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-block fb-cyan">Афірмації<br><small>багатопотоковий</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-block fb-muted">🔇 пауза в кінці</div>
+  </div>
+
+  <!-- Block Main -->
+  <div class="block-card block-main">
+    <div class="block-header">
+      <div class="block-title">Текст афірмацій</div>
+      <div class="block-badge badge-multi">⚡ Багатопотоковий</div>
+    </div>
+    <div class="block-desc">Кодування афірмацій — AM-модуляція по всьому спектру. Обов'язковий.</div>
+    <div class="block-content">
+      <div class="lang-sel"><label>🌐 Мова:</label><select id="lang-main" onchange="onInput('main')"><option value="auto" selected>Авто (за текстом)</option><option value="ru">🇷🇺 Російська</option><option value="uk">🇺🇦 Українська</option><option value="en">🇬🇧 Англійська</option></select></div>
+      <textarea id="text-main" rows="10" oninput="onInput('main')"
+        placeholder="Я здоровий і сильний&#10;Моє тіло ідеально здорове&#10;Моё тело полно энергии&#10;I am confident and successful&#10;Я досягаю всіх своїх цілей&#10;Всесвіт підтримує мене..."></textarea>
+      <div class="info-row">
+        <span id="count-main">0 символів</span>
+        <span id="dur-main">—</span>
+      </div>
+      <div class="lang-preview" id="preview-main"></div>
+    </div>
+  </div>
+
+  <!-- Voice -->
+  <div class="card">
+    <div class="card-title">🎙 Голос для кожної мови</div>
+    <div class="voice-grid">
+      <div class="lang-group">
+        <label>🇺🇦 Українська</label>
+        <select id="voice-uk">
+          <option value="uk-UA-PolinaNeural">Поліна (жіночий)</option>
+          <option value="uk-UA-OstapNeural">Остап (чоловічий)</option>
+        </select>
+      </div>
+      <div class="lang-group">
+        <label>🇷🇺 Російська</label>
+        <select id="voice-ru">
+          <option value="ru-RU-SvetlanaNeural">Світлана (жіночий)</option>
+          <option value="ru-RU-DmitryNeural">Дмитро (чоловічий)</option>
+        </select>
+      </div>
+      <div class="lang-group">
+        <label>🇬🇧 Англійська</label>
+        <select id="voice-en">
+          <option value="en-US-AriaNeural">Aria (female)</option>
+          <option value="en-US-GuyNeural">Guy (male)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Params -->
+  <div class="card">
+    <div class="card-title">⚙️ Параметри кодування</div>
+    <div class="params">
+      <div class="param">
+        <label>Кількість шарів <span id="lbl-layers">24</span></label>
+        <input type="range" id="layers" min="4" max="32" step="2" value="24" oninput="sync(this,'lbl-layers')"/>
+      </div>
+      <div class="param">
+        <label>Мін. прискорення (Блок 2) <span id="lbl-smin">3x</span></label>
+        <input type="range" id="speed-min" min="2" max="9" step="0.5" value="3" oninput="sync(this,'lbl-smin','x')"/>
+      </div>
+      <div class="param" style="grid-column:2">
+        <label>Макс. прискорення (Блок 2) <span id="lbl-smax">7x</span></label>
+        <input type="range" id="speed-max" min="3" max="10" step="0.5" value="7" oninput="sync(this,'lbl-smax','x')"/>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="param">
+        <label>🔇 Пауза на початку <span id="lbl-sil-start">0.0с</span></label>
+        <input type="range" id="sil-start" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-start','с')"/>
+      </div>
+      <div class="param">
+        <label>🔇 Пауза в кінці <span id="lbl-sil-end">0.0с</span></label>
+        <input type="range" id="sil-end" min="0" max="5" step="0.5" value="0" oninput="sync(this,'lbl-sil-end','с')"/>
+      </div>
+    </div>
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="lang-group">
+        <label style="color:var(--text);font-size:.82rem">🌊 Фоновий шум</label>
+        <select id="noise-type" style="margin-top: 4px;">
+          <option value="none">Вимкнено</option>
+          <option value="pink">Рожевий шум</option>
+          <option value="sea">Шум моря</option>
+          <option value="rain">Шум дощу</option>
+        </select>
+      </div>
+      <div class="param">
+        <label style="color:var(--text);font-size:.82rem">Гучність шуму <span id="lbl-noise-vol">-12дБ</span></label>
+        <input type="range" id="noise-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-noise-vol','дБ')"/>
+      </div>
+    </div>
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="lang-group">
+        <label style="color:var(--text);font-size:.82rem">🎧 Бінауральні ритми</label>
+        <select id="binaural-type" style="margin-top: 4px;">
+          <option value="none">Вимкнено</option>
+          <option value="theta" selected>Тета-ритм (4 Гц) — Медітація</option>
+          <option value="alpha">Альфа-ритм (10 Гц) — Фокус</option>
+          <option value="delta">Дельта-ритм (2 Гц) — Сон / Регенерація</option>
+          <option value="beta">Бета-ритм (15 Гц) — Активність</option>
+        </select>
+      </div>
+      <div class="param">
+        <label style="color:var(--text);font-size:.82rem">Гучність ритму <span id="lbl-binaural-vol">-12дБ</span></label>
+        <input type="range" id="binaural-volume" min="-30" max="-6" step="1" value="-12" oninput="sync(this,'lbl-binaural-vol','дБ')"/>
+      </div>
+    </div>
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="lang-group">
+        <label style="color:var(--text);font-size:.82rem">🎵 Фонова музика</label>
+        <select id="music-type" style="margin-top: 4px;">
+          <option value="none">Вимкнено</option>
+        </select>
+      </div>
+      <div class="param">
+        <label style="color:var(--text);font-size:.82rem">Гучність музики <span id="lbl-music-vol">-12дБ</span></label>
+        <input type="range" id="music-volume" min="-30" max="0" step="1" value="-12" oninput="sync(this,'lbl-music-vol','дБ')"/>
+      </div>
+    </div>
+    <!-- Notch EQ row -->
+    <div id="notch-row" style="margin-top:14px;padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);display:flex;align-items:center;gap:12px;transition:opacity .3s">
+      <div style="flex:1">
+        <div style="font-size:.82rem;font-weight:600;color:var(--amber)">🎚 Хірургічний Notch EQ</div>
+        <div id="notch-desc" style="font-size:.72rem;color:var(--muted);margin-top:3px">Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. Активно лише при бінауральному ритмі + музиці.</div>
+      </div>
+      <label class="switch" title="Notch EQ">
+        <input type="checkbox" id="notch-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <button class="btn-generate" id="btn-gen" onclick="generate()">⚡ Генерувати WAV</button>
+
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="progress-label"><span id="prog-stage">Обробка...</span><span id="prog-pct">0%</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="status-text" id="status-txt">Підготовка...</div>
+  </div>
+  <div class="error-text" id="err-txt"></div>
+  <div class="download-wrap" id="dl-wrap">
+    <a class="btn-download" id="dl-link" href="#" download>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
+      </svg>
+      Завантажити кодований WAV
+    </a>
+    <a class="btn-download" id="dl-raw-link" href="#" download style="background:rgba(0,212,255,.12); border-color:rgba(0,212,255,.35); color:var(--cyan);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
+      </svg>
+      Завантажити ісходний голос
+    </a>
+  </div>
+</div>
+
+<script>
+let pollTimer = null;
+const CPS = 14;
+
+
+
+function detectLang(t) {
+  const lo = t.toLowerCase();
+  const lat = (lo.match(/[a-z]/g)||[]).length;
+  const cyr = (lo.match(/[\u0400-\u04FF]/g)||[]).length;
+  if (lat > cyr && lat > 0) return 'en';
+  
+  const uk_m = (lo.match(/[їієґ]/g)||[]).length;
+  const ru_m = (lo.match(/[ыъэё]/g)||[]).length;
+  
+  if (uk_m > ru_m) return 'uk';
+  if (ru_m > uk_m) return 'ru';
+  
+  // Ambiguous
+  if (lo.includes('и') && !lo.includes('і')) return 'ru';
+  if (lo.includes('і') && !lo.includes('и')) return 'uk';
+  
+  return 'ru';
+}
+
+function getSegments(text, forcedLang) {
+  const parts = text.trim().split(/(?<=[.!?\n])\s+|\n+/).filter(s=>s.trim());
+  const segs = [];
+  parts.forEach(s => {
+    const lang = (forcedLang && forcedLang !== 'auto') ? forcedLang : detectLang(s);
+    if (segs.length && segs[segs.length-1].lang === lang) segs[segs.length-1].t += ' '+s;
+    else segs.push({lang, t:s});
+  });
+  return segs;
+}
+
+const LL = {uk:'🇺🇦 УКР', ru:'🇷🇺 РОС', en:'🇬🇧 ENG'};
+const CC = {uk:'chip-uk', ru:'chip-ru', en:'chip-en'};
+
+function onInput(id) {
+  const text = document.getElementById('text-'+id).value;
+  const forced = document.getElementById('lang-'+id).value;
+  document.getElementById('count-'+id).textContent = text.length + ' символів';
+  const est = text.trim().length > 0 ? Math.max(2, Math.round(text.trim().length / CPS)) : 0;
+  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}с` : '—';
+  
+  const preview = document.getElementById('preview-'+id);
+  if (!preview) return;
+  const segs = text.trim() ? getSegments(text, forced) : [];
+  preview.innerHTML = segs.map(s => `<span class="chip ${CC[s.lang]}">${LL[s.lang]}</span>`).join('');
+}
+
+function sync(el, lbl, sfx='') {
+  document.getElementById(lbl).textContent = el.value + sfx;
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+// ─── Dynamic music track loader ─────────────────────────────────────
+async function loadMusicTracks() {
+  const sel = document.getElementById('music-type');
+  try {
+    const tracks = await fetch('/music_tracks').then(r => r.json());
+    // Clear existing options except "none"
+    sel.innerHTML = '<option value="none">Вимкнено</option>';
+    if (tracks.length === 0) {
+      const opt = document.createElement('option');
+      opt.disabled = true;
+      opt.textContent = '— Немає аудіофайлів в engine/music/';
+      sel.appendChild(opt);
+    } else {
+      tracks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.label;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {
+    console.warn('Could not load music tracks:', e);
+  }
+}
+loadMusicTracks();
+
+
+['layers','speed-min','speed-max','sil-start','sil-end','noise-volume','binaural-volume','music-volume'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.style.setProperty('--pct', ((el.value-el.min)/(el.max-el.min)*100)+'%');
+});
+
+// Binaural carrier frequencies per type
+const BINAURAL_FREQS = {
+  delta: { l: 136.1, r: 138.1, label: 'Дельта (2 Гц)' },
+  theta: { l: 136.1, r: 140.1, label: 'Тета (4 Гц)' },
+  alpha: { l: 136.1, r: 146.1, label: 'Альфа (10 Гц)' },
+  beta:  { l: 136.1, r: 151.1, label: 'Бета (15 Гц)' },
+};
+
+function updateNotchDesc() {
+  const type = document.getElementById('binaural-type').value;
+  const desc = document.getElementById('notch-desc');
+  if (!desc) return;
+  if (type === 'none' || !BINAURAL_FREQS[type]) {
+    desc.innerHTML = 'Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. <em>Оберіть бінауральний ритм, щоб побачити конкретні частоти.</em>';
+  } else {
+    const f = BINAURAL_FREQS[type];
+    desc.innerHTML = `Notch для <strong style="color:var(--amber)">${f.label}</strong>: вирізає <strong style="color:var(--cyan)">${f.l} Гц</strong> (L) та <strong style="color:var(--cyan)">${f.r} Гц</strong> (R) з фонового треку. Q=30 (~4–5 Гц ширина зрізу). Активно лише при бінауральному ритмі + музиці.`;
+  }
+}
+
+// Init + bind binaural-type change
+updateNotchDesc();
+document.getElementById('binaural-type').addEventListener('change', updateNotchDesc);
+
+async function generate() {
+  const main = document.getElementById('text-main').value.trim();
+  if (!main) { alert('Блок 2 (основний текст) обов\'язковий'); return; }
+
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.textContent = '⏳ Обробка...';
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('dl-wrap').style.display = 'none';
+  document.getElementById('err-txt').style.display = 'none';
+  setProgress(5, 'Відправка запиту...');
+
+  const fd = new FormData();
+
+  fd.append('text_main',   main);
+  fd.append('voice_uk',    document.getElementById('voice-uk').value);
+  fd.append('voice_ru',    document.getElementById('voice-ru').value);
+  fd.append('voice_en',    document.getElementById('voice-en').value);
+  fd.append('lang_main',     document.getElementById('lang-main').value);
+  fd.append('layers',        document.getElementById('layers').value);
+  fd.append('speed_min',     document.getElementById('speed-min').value);
+  fd.append('speed_max',     document.getElementById('speed-max').value);
+  fd.append('silence_start', document.getElementById('sil-start').value);
+  fd.append('silence_end',   document.getElementById('sil-end').value);
+  fd.append('noise_type',    document.getElementById('noise-type').value);
+  fd.append('noise_volume',  document.getElementById('noise-volume').value);
+  fd.append('binaural_type',    document.getElementById('binaural-type').value);
+  fd.append('binaural_volume',  document.getElementById('binaural-volume').value);
+  fd.append('music_type',       document.getElementById('music-type').value);
+  fd.append('music_volume',     document.getElementById('music-volume').value);
+  fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
+
+  try {
+    const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());
+    pollStatus(job_id);
+  } catch(e) { showError('Помилка: '+e.message); resetBtn(); }
+}
+
+function pollStatus(job_id) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const d = await fetch('/status/'+job_id).then(r=>r.json());
+      if (d.status === 'processing') {
+        const p = d.progress || 5;
+        const msg = p < 25 ? '🎙 Генерація TTS...'
+          : p < 90 ? `⚡ AM-кодування шарів... ${p}%`
+          : '💾 Нормалізація та запис WAV...';
+        setProgress(p, msg);
+      } else if (d.status === 'done') {
+        clearInterval(pollTimer);
+        setProgress(100, '✅ Готово!');
+        setTimeout(() => showDownload(job_id), 400);
+        resetBtn();
+      } else if (d.status === 'error') {
+        clearInterval(pollTimer);
+        showError('Помилка: ' + (d.error||'невідома'));
+        resetBtn();
+      }
+    } catch {}
+  }, 800);
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('status-txt').textContent = msg;
+}
+function showDownload(job_id) {
+  document.getElementById('dl-link').href = '/download/'+job_id;
+  document.getElementById('dl-raw-link').href = '/download_raw/'+job_id;
+  const w = document.getElementById('dl-wrap');
+  w.style.display = 'flex';
+  w.scrollIntoView({behavior:'smooth'});
+}
+function showError(msg) {
+  const el = document.getElementById('err-txt');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('prog-wrap').style.display = 'none';
+}
+function resetBtn() {
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = false; btn.textContent = '⚡ Генерувати WAV';
+}
+</script>
+</body>
+</html>
