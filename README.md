@@ -1,5 +1,9 @@
 # Neurocode Studio
 
+<p align="center">
+  <img src="static/logo.png" width="160" height="160" alt="Neurocode Studio Logo"/>
+</p>
+
 **Neurocode Studio** is a high-fidelity psychoacoustic audio processing engine and desktop suite designed for synthesizing subliminal audio tracks. It encodes verbal affirmation texts directly into high-frequency stereo carriers using multi-layer Amplitude Modulation (AM), optional brainwave entrainment (Binaural Beats), and background music beds with surgical DSP filtering.
 
 The entire application runs as a standalone desktop suite (using `pywebview` and `FastAPI`) or as a web service.
