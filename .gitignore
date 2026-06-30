@@ -7,3 +7,16 @@ outputs/
 *.wav
 *.mp3
 /none
+
+# Scratch scripts and temporary diagnostics
+scratch/
+none
+
+# Environments, API keys, and credentials
+.env
+.env.*
+*.key
+*.pem
+*.token
+*secret*
+credentials*.json
