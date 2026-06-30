@@ -135,8 +135,8 @@ def encode_multilayer(
             {'channel': 1, 'freq': cf_r1, 'speed': sf_r1, 'offset_zero': False},
         ]
         if log_cb:
-            log_cb(f"Ultra-HD (4 шари): L1={cf_l0:.1f} Гц ({sf_l0:.2f}x), L2={cf_l1:.1f} Гц ({sf_l1:.2f}x)")
-            log_cb(f"Ultra-HD (4 шари): R1={cf_r0:.1f} Гц ({sf_r0:.2f}x), R2={cf_r1:.1f} Гц ({sf_r1:.2f}x)")
+            log_cb(f"Ultra-HD (4 layers): L1={cf_l0:.1f} Hz ({sf_l0:.2f}x), L2={cf_l1:.1f} Hz ({sf_l1:.2f}x)")
+            log_cb(f"Ultra-HD (4 layers): R1={cf_r0:.1f} Hz ({sf_r0:.2f}x), R2={cf_r1:.1f} Hz ({sf_r1:.2f}x)")
     else:
         # Standard mode: symmetrical stereo grid
         n_left = n_layers // 2
@@ -174,7 +174,7 @@ def encode_multilayer(
             })
             
         if log_cb:
-            log_cb(f"Стандартний режим: {n_left} шарів зліва, {n_right} шарів справа (діапазон 3000 - 18000 Гц, крок {15000 / max(1, n_left - 1):.1f} Гц)")
+            log_cb(f"Standard mode: {n_left} layers Left, {n_right} layers Right (range 3000 - 18000 Hz, step {15000 / max(1, n_left - 1):.1f} Hz)")
 
     # 3. Process each layer
     total_layers = len(layers_config)
@@ -382,7 +382,7 @@ def mix_final(
     Build the WAV with actual fade in / fade out and stereo.
     """
     if log_cb:
-        log_cb("Підготовка до багатопотокового AM-кодування...")
+        log_cb("Preparing multi-threaded AM encoding...")
 
     if progress_cb:
         progress_cb(15)
@@ -394,7 +394,7 @@ def mix_final(
     )
     
     if log_cb:
-        log_cb("Багатопотокове AM-кодування завершено.")
+        log_cb("Multi-threaded AM encoding completed.")
 
     if progress_cb:
         progress_cb(95)
@@ -405,13 +405,13 @@ def mix_final(
     
     if binaural_type != "none":
         if log_cb:
-            log_cb(f"Синтез бінаурального ритму ({binaural_type})...")
+            log_cb(f"Synthesizing binaural beat ({binaural_type})...")
         binaural = generate_binaural_beat(binaural_type, len(final), sr, binaural_volume)
         final += binaural
         
     if music_type != "none":
         if log_cb:
-            log_cb(f"Завантаження та обробка фонової музики ({music_type})...")
+            log_cb(f"Loading and processing background music ({music_type})...")
         notch_freqs = None
         if music_notch_enabled and binaural_type != "none":
             freqs = get_binaural_freqs(binaural_type)
@@ -419,7 +419,7 @@ def mix_final(
                 f_left, f_right = freqs
                 notch_freqs = [[f_left], [f_right]]
                 if log_cb:
-                    log_cb("Застосування хірургічного Notch EQ до музики...")
+                    log_cb("Applying surgical Notch EQ to music...")
         music = _get_music_audio(music_type, len(final), sr, notch_freqs=notch_freqs)
         linear_vol = 10 ** (music_volume / 20.0)
         final += music * linear_vol
@@ -429,7 +429,7 @@ def mix_final(
         fade_in_samples = int(silence_start * sr)
         if fade_in_samples > 0 and len(final) >= fade_in_samples:
             if log_cb:
-                log_cb(f"Застосування плавного входу (Fade In) {silence_start}с...")
+                log_cb(f"Applying smooth Fade In ({silence_start}s)...")
             fade_in_curve = np.linspace(0.0, 1.0, fade_in_samples)[:, np.newaxis]
             final[:fade_in_samples] *= fade_in_curve
 
@@ -437,24 +437,24 @@ def mix_final(
         fade_out_samples = int(silence_end * sr)
         if fade_out_samples > 0 and len(final) >= fade_out_samples:
             if log_cb:
-                log_cb(f"Застосування плавного виходу (Fade Out) {silence_end}с...")
+                log_cb(f"Applying smooth Fade Out ({silence_end}s)...")
             fade_out_curve = np.linspace(1.0, 0.0, fade_out_samples)[:, np.newaxis]
             final[-fade_out_samples:] *= fade_out_curve
 
     if log_cb:
-        log_cb("Нормалізація амплітуди змішаного сигналу...")
+        log_cb("Normalizing amplitude of mixed signal...")
     # Final safety peak norm
     peak = np.max(np.abs(final))
     if peak > 1.0:
         final /= peak
 
     if log_cb:
-        log_cb("Запис кінцевого WAV файлу...")
+        log_cb("Writing final WAV file...")
     sf.write(output_path, final, sr, subtype="FLOAT")
 
     if output_raw_path:
         if log_cb:
-            log_cb("Генерація вихідного файлу голосу...")
+            log_cb("Generating raw voice file...")
         raw_final = encode_single_stream(main_audio, speed=1.0, sr=sr)
         
         # Apply fade in & fade out to raw audio too
@@ -473,6 +473,6 @@ def mix_final(
         sf.write(output_raw_path, raw_final, sr, subtype="FLOAT")
 
     if log_cb:
-        log_cb("Генерацію завершено успішно.")
+        log_cb("Generation finished successfully.")
     if progress_cb:
         progress_cb(100)

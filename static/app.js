@@ -44,7 +44,7 @@ function toggleHelpMode() {
   const btn = document.getElementById('help-toggle-btn');
   if (btn) {
     const active = document.body.classList.contains('help-active');
-    btn.textContent = active ? 'Довідка увімкнена' : 'Довідка';
+    btn.textContent = active ? 'Help Active' : 'Help';
     btn.classList.toggle('active', active);
   }
 }
@@ -79,15 +79,15 @@ function getSegments(text, forcedLang) {
   return segs;
 }
 
-const LL = {uk:'UK · УКР', ru:'RU · РОС', en:'EN · ENG'};
+const LL = {uk:'UK · UKR', ru:'RU · RUS', en:'EN · ENG'};
 const CC = {uk:'chip-uk', ru:'chip-ru', en:'chip-en'};
 
 function onInput(id) {
   const text = document.getElementById('text-'+id).value;
   const forced = document.getElementById('lang-'+id).value;
-  document.getElementById('count-'+id).textContent = text.length + ' символів';
+  document.getElementById('count-'+id).textContent = text.length + ' characters';
   const est = text.trim().length > 0 ? Math.max(2, Math.round(text.trim().length / CPS)) : 0;
-  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}с` : '—';
+  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}s` : '—';
   
   const preview = document.getElementById('preview-'+id);
   if (!preview) return;
@@ -105,11 +105,11 @@ async function loadMusicTracks() {
   const sel = document.getElementById('music-type');
   try {
     const tracks = await fetch('/music_tracks').then(r => r.json());
-    sel.innerHTML = '<option value="none">— Вимкнено</option>';
+    sel.innerHTML = '<option value="none">— Disabled</option>';
     if (tracks.length === 0) {
       const opt = document.createElement('option');
       opt.disabled = true;
-      opt.textContent = '— Немає аудіофайлів в engine/music/';
+      opt.textContent = '— No audio files in engine/music/';
       sel.appendChild(opt);
     } else {
       tracks.forEach(t => {
@@ -285,10 +285,10 @@ function renderActiveLoader(pct, stage) {
 });
 
 const BINAURAL_FREQS = {
-  delta: { l: 136.1, r: 138.1, label: 'Дельта (2 Гц)' },
-  theta: { l: 136.1, r: 140.1, label: 'Тета (4 Гц)' },
-  alpha: { l: 136.1, r: 146.1, label: 'Альфа (10 Гц)' },
-  beta:  { l: 136.1, r: 151.1, label: 'Бета (15 Гц)' },
+  delta: { l: 136.1, r: 138.1, label: 'Delta (2 Hz)' },
+  theta: { l: 136.1, r: 140.1, label: 'Theta (4 Hz)' },
+  alpha: { l: 136.1, r: 146.1, label: 'Alpha (10 Hz)' },
+  beta:  { l: 136.1, r: 151.1, label: 'Beta (15 Hz)' },
 };
 
 function updateNotchDesc() {
@@ -300,10 +300,10 @@ function updateNotchDesc() {
   }
   if (!desc) return;
   if (type === 'none' || !BINAURAL_FREQS[type]) {
-    desc.innerHTML = 'Видаляє несучі частоти активного бінаурального ритму з фонового треку, щоб уникнути маскування. <em>Оберіть бінауральний ритм, щоб побачити конкретні частоти.</em>';
+    desc.innerHTML = 'Carves out active binaural carrier frequencies from the background track to prevent acoustic masking. <em>Select a binaural beat to see target frequencies.</em>';
   } else {
     const f = BINAURAL_FREQS[type];
-    desc.innerHTML = `Notch для <strong>${f.label}</strong>: вирізає <strong>${f.l} Гц</strong> (L) та <strong>${f.r} Гц</strong> (R) з фонового треку. Q=30 (~4–5 Гц ширина зрізу). Active only when binaural + music.`;
+    desc.innerHTML = `Notch EQ for <strong>${f.label}</strong>: notches out <strong>${f.l} Hz</strong> (L) and <strong>${f.r} Hz</strong> (R) from the background music. Q=30 (~4–5 Hz notch width). Active only when binaural + music.`;
   }
 }
 

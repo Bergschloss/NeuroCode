@@ -11,7 +11,7 @@ def test_generate_and_download():
     r = requests.post(
         f"{BASE}/generate",
         data={
-            "text_main": "Тестове повідомлення.",
+            "text_main": "Test affirmation message.",
             "lang_main": "auto",
             "layers": 4,
             "speed_min": 3.0,

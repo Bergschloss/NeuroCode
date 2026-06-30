@@ -33,11 +33,23 @@ def cleanup_old_outputs(max_age_seconds: float = 3600):
                 if file_age > max_age_seconds:
                     try:
                         path.unlink()
-                        print(f"[CLEANUP] Deleted old output file: {path.name}")
+                        try:
+                            print(f"[CLEANUP] Deleted old output file: {path.name}")
+                        except UnicodeEncodeError:
+                            safe_name = path.name.encode('ascii', errors='backslashreplace').decode('ascii')
+                            print(f"[CLEANUP] Deleted old output file: {safe_name}")
                     except Exception as e:
-                        print(f"[CLEANUP ERROR] Could not delete {path.name}: {e}")
+                        try:
+                            print(f"[CLEANUP ERROR] Could not delete {path.name}: {e}")
+                        except UnicodeEncodeError:
+                            safe_name = path.name.encode('ascii', errors='backslashreplace').decode('ascii')
+                            print(f"[CLEANUP ERROR] Could not delete {safe_name}: {e}")
     except Exception as e:
-        print(f"[CLEANUP ERROR] General cleanup error: {e}")
+        try:
+            print(f"[CLEANUP ERROR] General cleanup error: {e}")
+        except UnicodeEncodeError:
+            safe_msg = str(e).encode('ascii', errors='backslashreplace').decode('ascii')
+            print(f"[CLEANUP ERROR] General cleanup error: {safe_msg}")
 
 
 @app.get("/music_tracks")
@@ -194,13 +206,13 @@ async def _run(
     ultra_hd_mode=False,
 ):
     try:
-        add_job_log(job_id, "Ініціалізація сесії генерації...")
+        add_job_log(job_id, "Initializing generation session...")
         sr = TARGET_SR
         jobs[job_id]["progress"] = 8
 
         # ── Main text TTS (will be multi-layer encoded) ────────────
         if not text_main:
-            raise ValueError("Основний текст не може бути порожнім")
+            raise ValueError("Affirmation text cannot be empty")
 
         # Check cache
         cache_hit = False
@@ -215,13 +227,13 @@ async def _run(
             cache_hit = True
 
         if cache_hit:
-            add_job_log(job_id, "Використання збереженого з попередньої генерації голосу (TTS кеш)...")
+            add_job_log(job_id, "Using cached TTS voice from previous generation...")
             main_audio = tts_cache["audio"].copy()
             sr = tts_cache["sr"]
         else:
-            add_job_log(job_id, "Синтез мовлення за допомогою Neural TTS...")
+            add_job_log(job_id, "Synthesizing speech via Neural TTS...")
             main_audio, sr = await generate_tts_multilang(text_main, voices, lang_main)
-            add_job_log(job_id, "Синтез Neural TTS завершено успішно.")
+            add_job_log(job_id, "Neural TTS synthesis completed successfully.")
             if client_session_id:
                 tts_cache = {
                     "client_session_id": client_session_id,
@@ -240,7 +252,7 @@ async def _run(
             add_job_log(job_id, msg)
 
         loop = asyncio.get_event_loop()
-        add_job_log(job_id, "Початок зведення та кодування...")
+        add_job_log(job_id, "Starting mixdown and encoding...")
         await loop.run_in_executor(
             None,
             mix_final,
@@ -257,9 +269,9 @@ async def _run(
         )
 
         jobs[job_id].update({"status": "done", "progress": 100})
-        add_job_log(job_id, "Сесія генерації успішно завершена.")
+        add_job_log(job_id, "Generation session completed successfully.")
     except Exception as exc:
-        add_job_log(job_id, f"Помилка: {exc}")
+        add_job_log(job_id, f"Error: {exc}")
         jobs[job_id].update({"status": "error", "error": str(exc), "progress": 0})
 
 
