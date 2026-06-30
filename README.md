@@ -79,6 +79,21 @@ To combine subliminal voice carriers with background music without losing the bi
 
 ---
 
+## Patent Foundations
+
+The DSP pipelines implemented in Neurocode Studio build upon established psychoacoustic and neuro-electrical stimulation methodologies. Key patent foundations referenced by this system include:
+
+- **Amplitude Modulation (AM) Subliminal Encoding**:
+  - **U.S. Patent No. 5,159,703** (*"Silent Subliminal Presentation System"*, Oliver M. Lowery, 1992 - Expired): Describes the conversion of standard audio to silent subliminal frequencies via high-frequency carrier wave modulation.
+- **Binaural Beats & Hemispheric Synchronization**:
+  - **U.S. Patent No. 3,884,218** (Robert A. Monroe, 1975 - Expired): Pioneer patent on hemispheric synchronization (Hemi-Sync) using binaural beat patterns.
+  - **U.S. Patent No. 5,213,562** (Robert A. Monroe, 1993 - Expired): Describes methods of inducing specific mental states by superimposing binaural frequency signals.
+  - **U.S. Patent No. 5,356,368** (Robert A. Monroe, 1994 - Expired): Methods and apparatus for inducing sleep and targeted states of consciousness.
+- **Surgical Notch EQ**:
+  - Tailors frequency-notched music similar to auditory training schemes used to manage critical-band audio. Commercial hearing-aid implementations are licensed under patents such as **U.S. Patent No. 9,549,269 B2** (Sivantos / Signia Notch Therapy).
+
+---
+
 ## Project Structure
 
 ```
