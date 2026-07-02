@@ -13,7 +13,7 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 ## Key Features
 
 - **Neural TTS Engine**: Multi-language Text-to-Speech synthesis (English, Ukrainian, Russian) with automatic per-sentence language detection.
-- **Symmetrical AM Stereo Carriers**: Speech signals are modulated onto symmetrical high-frequency carriers starting at **3000 Hz** up to **18000 Hz** across both left and right channels to enforce bilateral brain hemisphere stimulation.
+- **Symmetrical AM Stereo Carriers**: Speech signals are modulated onto symmetrical high-frequency carriers starting at **14000 Hz** up to **18000 Hz** across both left and right channels to enforce bilateral brain hemisphere stimulation.
 - **Ultra-HD Mode**: A premium, high-density 4-layer configuration (2 layers panned Left, 2 layers panned Right) featuring randomized carrier offsets ($\pm 300\text{ Hz}$) and independent speed-up factors.
 - **Golden Speed Range**: Asynchronous layer speech stretching randomized between **2.0x** and **4.0x** — the optimal speed for subconscious processing and auditory comprehension.
 - **Instant Entry Technology**: Base carrier layers start with a $0\text{-second}$ offset, ensuring that affirmation signals enter the listener's subconscious immediately without initial silent gaps.
@@ -70,10 +70,10 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 ```
 
 ### 1. Amplitude Modulation (AM) Subliminal Encoding
-Standard audio signals are easily captured by the conscious mind. By modulating the amplitude of high-frequency sine carriers (ranging from 3 kHz up to 18 kHz) with the speech signal, the verbal content is shifted into a frequency spectrum where it bypasses the conscious threshold of the human ear, yet remains fully decodable by the auditory cortex and the subconscious mind.
+Standard audio signals are easily captured by the conscious mind. By modulating the amplitude of high-frequency sine carriers (ranging from 14 kHz up to 18 kHz) with the speech signal, the verbal content is shifted into a frequency spectrum where it bypasses the conscious threshold of the human ear, yet remains fully decodable by the auditory cortex and the subconscious mind.
 
 ### 2. Symmetrical Stereo Grid
-Instead of panning layers in an offset comb grid, both Left and Right channels contain matching carrier frequencies starting from 3000 Hz. This symmetry creates a cohesive, balanced soundstage, reinforcing bilateral integration in the brain hemispheres.
+Instead of panning layers in an offset comb grid, both Left and Right channels contain matching carrier frequencies starting from 14000 Hz. This symmetry creates a cohesive, balanced soundstage, reinforcing bilateral integration in the brain hemispheres.
 
 ### 3. Golden Speed Stretches
 To increase the cognitive throughput to the subconscious, layers are accelerated between 2.0x and 4.0x. This range is high enough to compress information and bypass verbal resistance, while remaining fully intelligible to the subconscious processing centers of the brain.
