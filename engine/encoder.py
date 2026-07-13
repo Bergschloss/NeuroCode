@@ -117,13 +117,13 @@ def encode_multilayer(
     if ultra_hd_mode:
         # 4 layers total: 2 for Left (channel 0), 2 for Right (channel 1)
         # Left channel layers:
-        cf_l0 = 14000.0 + np.random.uniform(-300.0, 300.0)
+        cf_l0 = 3000.0 + np.random.uniform(-300.0, 300.0)
         sf_l0 = np.random.uniform(speed_min, speed_max)
         cf_l1 = 18000.0 + np.random.uniform(-300.0, 300.0)
         sf_l1 = np.random.uniform(speed_min, speed_max)
         
         # Right channel layers:
-        cf_r0 = 14000.0 + np.random.uniform(-300.0, 300.0)
+        cf_r0 = 3000.0 + np.random.uniform(-300.0, 300.0)
         sf_r0 = np.random.uniform(speed_min, speed_max)
         cf_r1 = 18000.0 + np.random.uniform(-300.0, 300.0)
         sf_r1 = np.random.uniform(speed_min, speed_max)
@@ -143,17 +143,17 @@ def encode_multilayer(
         n_right = n_layers - n_left
         
         if n_left > 1:
-            left_freqs = np.linspace(14000.0, 18000.0, n_left)
+            left_freqs = np.linspace(3000.0, 18000.0, n_left)
             left_speeds = np.linspace(speed_min, speed_max, n_left)
         else:
-            left_freqs = np.array([14000.0])
+            left_freqs = np.array([3000.0])
             left_speeds = np.array([speed_min])
             
         if n_right > 1:
-            right_freqs = np.linspace(14000.0, 18000.0, n_right)
+            right_freqs = np.linspace(3000.0, 18000.0, n_right)
             right_speeds = np.linspace(speed_min, speed_max, n_right)
         else:
-            right_freqs = np.array([14000.0])
+            right_freqs = np.array([3000.0])
             right_speeds = np.array([speed_min])
             
         # Add Left channel layers (even panning)
@@ -174,7 +174,7 @@ def encode_multilayer(
             })
             
         if log_cb:
-            log_cb(f"Standard mode: {n_left} layers Left, {n_right} layers Right (range 14000 - 18000 Hz, step {4000 / max(1, n_left - 1):.1f} Hz)")
+            log_cb(f"Standard mode: {n_left} layers Left, {n_right} layers Right (range 3000 - 18000 Hz, step {15000 / max(1, n_left - 1):.1f} Hz)")
 
     # 3. Process each layer
     total_layers = len(layers_config)
@@ -296,8 +296,8 @@ def _get_music_audio(
         tiled = np.tile(music_data, (reps, 1))
         music_signal = tiled[:length_samples].copy()
         
-        # Apply 14000 Hz low-pass filter (high cut) to protect the voice spectrum
-        cutoff = 14000.0
+        # Apply 3000 Hz low-pass filter (high cut) to protect the voice spectrum
+        cutoff = 3000.0
         nyq = 0.5 * sr
         normal_cutoff = cutoff / nyq
         b_lp, a_lp = butter(4, normal_cutoff, btype='low', analog=False)
