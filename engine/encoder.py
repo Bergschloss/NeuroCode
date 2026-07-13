@@ -143,18 +143,22 @@ def encode_multilayer(
         n_right = n_layers - n_left
         
         if n_left > 1:
-            left_freqs = np.linspace(3000.0, 18000.0, n_left)
-            left_speeds = np.linspace(speed_min, speed_max, n_left)
+            left_freqs = np.linspace(3000.0, 18000.0, n_left) + np.random.uniform(-150.0, 150.0, n_left)
+            left_speeds = np.linspace(speed_min, speed_max, n_left) + np.random.uniform(-0.05, 0.05, n_left)
         else:
             left_freqs = np.array([3000.0])
             left_speeds = np.array([speed_min])
             
         if n_right > 1:
-            right_freqs = np.linspace(3000.0, 18000.0, n_right)
-            right_speeds = np.linspace(speed_min, speed_max, n_right)
+            right_freqs = np.linspace(3000.0, 18000.0, n_right) + np.random.uniform(-150.0, 150.0, n_right)
+            right_speeds = np.linspace(speed_min, speed_max, n_right) + np.random.uniform(-0.05, 0.05, n_right)
         else:
             right_freqs = np.array([3000.0])
             right_speeds = np.array([speed_min])
+            
+        # Ensure speeds do not drop below 1.0
+        left_speeds = np.clip(left_speeds, 1.0, 20.0)
+        right_speeds = np.clip(right_speeds, 1.0, 20.0)
             
         # Add Left channel layers (even panning)
         for j in range(n_left):
