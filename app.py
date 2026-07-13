@@ -71,7 +71,7 @@ async def generate(
     voice_ru: str = Form("ru-RU-SvetlanaNeural"),
     voice_en: str = Form("en-US-AriaNeural"),
     lang_main: str = Form("auto"),
-    layers: int = Form(24),
+    layers: int = Form(12),
     speed_min: float = Form(2.0),
     speed_max: float = Form(4.0),
     silence_start: float = Form(1.5),
