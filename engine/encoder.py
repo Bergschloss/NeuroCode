@@ -129,9 +129,9 @@ def encode_multilayer(
         sf_r1 = np.random.uniform(speed_min, speed_max)
         
         layers_config = [
-            {'channel': 0, 'freq': cf_l0, 'speed': sf_l0, 'offset_zero': True},
+            {'channel': 0, 'freq': cf_l0, 'speed': sf_l0, 'offset_zero': True},  # Instant entry on Left
             {'channel': 0, 'freq': cf_l1, 'speed': sf_l1, 'offset_zero': False},
-            {'channel': 1, 'freq': cf_r0, 'speed': sf_r0, 'offset_zero': True},
+            {'channel': 1, 'freq': cf_r0, 'speed': sf_r0, 'offset_zero': False}, # Random start on Right to avoid mono alignment
             {'channel': 1, 'freq': cf_r1, 'speed': sf_r1, 'offset_zero': False},
         ]
         if log_cb:
@@ -166,7 +166,7 @@ def encode_multilayer(
                 'channel': 0,
                 'freq': left_freqs[j],
                 'speed': left_speeds[j],
-                'offset_zero': (j == 0)
+                'offset_zero': (j == 0) # Instant entry on Left Layer 0
             })
         # Add Right channel layers (odd panning)
         for j in range(n_right):
@@ -174,7 +174,7 @@ def encode_multilayer(
                 'channel': 1,
                 'freq': right_freqs[j],
                 'speed': right_speeds[j],
-                'offset_zero': (j == 0)
+                'offset_zero': False # All Right layers start randomly to prevent phantom mono center
             })
             
         if log_cb:
