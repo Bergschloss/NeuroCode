@@ -15,10 +15,13 @@ echo [1/2] Checking dependencies...
 if %errorlevel% neq 0 (
     echo Dependencies are missing or incomplete. Installing...
     "%PYTHON%" -m pip install -r requirements.txt
+    
+    echo Verifying installation...
+    "%PYTHON%" -c "import fastapi, uvicorn, edge_tts, soundfile, librosa, pywebview" >nul 2>&1
     if %errorlevel% neq 0 (
         echo [ERROR] Failed to install dependencies.
         pause
-        exit /b %errorlevel%
+        exit /b 1
     )
 ) else (
     echo Dependencies are OK.
