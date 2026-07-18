@@ -113,7 +113,7 @@
     <div class="field">
       <div class="field-label">Text</div>
       <div class="field-body">
-        <textarea id="text-main" rows="8" oninput="onInput('main')"></textarea>
+        <textarea id="text-main" rows="8" oninput="onInput('main')" autocomplete="off" placeholder="Type or paste your affirmations here..."></textarea>
         <div class="info-row">
           <span id="count-main">0 characters</span>
           <span id="dur-main">—</span>
@@ -186,9 +186,9 @@
       <div class="field-body">
         <div class="grid-two-cols">
           <div class="slider-block">
-            <div class="slider-meta"><span class="desc">Min</span><span class="v" id="lbl-smin">2x</span></div>
+            <div class="slider-meta"><span class="desc">Min</span><span class="v" id="lbl-smin">3x</span></div>
             <div class="slider-track">
-              <input type="range" id="speed-min" min="2" max="9" step="0.5" value="2" oninput="sync(this,'lbl-smin','x')"/>
+              <input type="range" id="speed-min" min="2" max="9" step="0.5" value="3" oninput="sync(this,'lbl-smin','x')"/>
             </div>
           </div>
           <div class="slider-block">
@@ -220,6 +220,19 @@
           </div>
         </div>
         <div class="help-block">The duration in seconds for smooth volume fade-in at the beginning and fade-out at the end of the track.</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Voices Volume</div>
+      <div class="field-body">
+        <div class="slider-block">
+          <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-voice-vol">0dB</span></div>
+          <div class="slider-track">
+            <input type="range" id="voice-volume" min="-30" max="0" step="1" value="0" oninput="sync(this,'lbl-voice-vol','dB')"/>
+          </div>
+        </div>
+        <div class="help-block">Adjust the relative volume of the modulated voice layers in the mix. 0 dB is full volume.</div>
       </div>
     </div>
 

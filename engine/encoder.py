@@ -397,6 +397,7 @@ def mix_final(
     music_notch_enabled: bool = False,
     progress_cb: Callable[[int], None] = None,
     log_cb: Callable[[str], None] = None,
+    voice_volume: float = 0.0,
 ) -> None:
     """
     Build the WAV with actual fade in / fade out and stereo.
@@ -412,6 +413,10 @@ def mix_final(
         progress_cb=progress_cb, p_start=25, p_end=90,
         log_cb=log_cb
     )
+    
+    # Scale voice volume before mixing
+    linear_voice_vol = 10 ** (voice_volume / 20.0)
+    main_encoded *= linear_voice_vol
     
     if log_cb:
         log_cb("Multi-threaded AM encoding completed.")

@@ -94,7 +94,7 @@ async def generate(
     voice_en: str = Form("en-US-AriaNeural"),
     lang_main: str = Form("auto"),
     layers: int = Form(12),
-    speed_min: float = Form(2.0),
+    speed_min: float = Form(3.0),
     speed_max: float = Form(4.0),
     silence_start: float = Form(1.5),
     silence_end: float = Form(1.5),
@@ -108,6 +108,7 @@ async def generate(
     export_dir: str = Form(None),
     save_encoded: str = Form("true"),
     save_raw: str = Form("false"),
+    voice_volume: float = Form(0.0),
 ):
     if not export_dir or not export_dir.strip():
         raise HTTPException(status_code=400, detail="Output directory is required")
@@ -200,6 +201,7 @@ async def generate(
         notch_flag,
         output_path, output_raw_path,
         client_session_id,
+        voice_volume,
     )
     return {"job_id": job_id}
 
@@ -228,6 +230,7 @@ async def _run(
     music_notch_enabled,
     out, out_raw,
     client_session_id=None,
+    voice_volume=0.0,
 ):
     try:
         add_job_log(job_id, "Initializing generation session...")
@@ -289,6 +292,7 @@ async def _run(
             music_notch_enabled,
             cb,
             log_cb,
+            voice_volume,
         )
 
         jobs[job_id].update({"status": "done", "progress": 100})

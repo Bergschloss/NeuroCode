@@ -177,6 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const soundInput = document.getElementById('export-sound');
     if (soundInput) soundInput.checked = (savedSound === 'true');
   }
+  const savedVoiceVol = localStorage.getItem('ncs_voice_volume');
+  if (savedVoiceVol !== null) {
+    const voiceVolInput = document.getElementById('voice-volume');
+    if (voiceVolInput) voiceVolInput.value = savedVoiceVol;
+  }
 
   // Save to localStorage on input modification
   const dirInputEl = document.getElementById('export-dir');
@@ -207,6 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (soundEl) {
     soundEl.addEventListener('change', (e) => {
       localStorage.setItem('ncs_export_sound', e.target.checked);
+    });
+  }
+  const voiceVolEl = document.getElementById('voice-volume');
+  if (voiceVolEl) {
+    voiceVolEl.addEventListener('input', (e) => {
+      localStorage.setItem('ncs_voice_volume', e.target.value);
     });
   }
 
@@ -267,7 +278,7 @@ function renderActiveLoader(pct, stage) {
 }
 
 /* Sync properties */
-['layers','speed-min','speed-max','sil-start','sil-end','binaural-volume','music-volume'].forEach(id => {
+['layers','speed-min','speed-max','sil-start','sil-end','binaural-volume','music-volume','voice-volume'].forEach(id => {
   const el = document.getElementById(id);
   if(el) el.style.setProperty('--pct', ((el.value-el.min)/(el.max-el.min)*100)+'%');
 });
@@ -344,6 +355,7 @@ async function generate() {
   fd.append('music_type',       document.getElementById('music-type').value);
   fd.append('music_volume',     document.getElementById('music-volume').value);
   fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
+  fd.append('voice_volume',     document.getElementById('voice-volume').value);
   fd.append('export_filename', document.getElementById('export-filename').value.trim());
   fd.append('export_dir',      exportDir);
   fd.append('save_encoded',    autosaveEncoded ? 'true' : 'false');
