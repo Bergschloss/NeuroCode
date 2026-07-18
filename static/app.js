@@ -273,6 +273,7 @@ function renderActiveLoader(pct, stage) {
 });
 
 const BINAURAL_FREQS = {
+  turbo_manipura: { l: '126/330/528', r: '129/336/538', label: 'Turbo-Manipura (3/6/10 Hz)' },
   delta: { l: 136.1, r: 138.1, label: 'Delta (2 Hz)' },
   theta: { l: 136.1, r: 140.1, label: 'Theta (4 Hz)' },
   alpha: { l: 136.1, r: 146.1, label: 'Alpha (10 Hz)' },

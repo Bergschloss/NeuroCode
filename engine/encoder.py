@@ -322,18 +322,60 @@ def generate_binaural_beat(beat_type: str, length_samples: int, sr: int, volume_
     if beat_type == "none":
         return np.zeros((length_samples, 2), dtype=np.float32)
     
+    linear_vol = 10 ** (volume_db / 20.0)
+    t = np.arange(length_samples, dtype=np.float64) / sr
+
+    if beat_type == "turbo_manipura":
+        # 1. Low Layer (Sun): 126.22 Hz + 3 Hz Delta
+        # Introduce slow LFO frequency drift to prevent brain habituation (period 33s, depth 1.5 Hz)
+        lfo1 = np.sin(2.0 * np.pi * 0.03 * t)
+        f_left1 = 126.22 + 1.5 * lfo1
+        f_right1 = 129.22 + 1.5 * lfo1
+        left1 = np.sin(2.0 * np.pi * f_left1 * t)
+        right1 = np.sin(2.0 * np.pi * f_right1 * t)
+        
+        # 2. Mid Layer (Detox/Chakra): 330.0 Hz + 6 Hz Theta
+        # Introduce slow LFO frequency drift (period 20s, depth 1.5 Hz)
+        lfo2 = np.sin(2.0 * np.pi * 0.05 * t)
+        f_left2 = 330.0 + 1.5 * lfo2
+        f_right2 = 336.0 + 1.5 * lfo2
+        left2 = np.sin(2.0 * np.pi * f_left2 * t)
+        right2 = np.sin(2.0 * np.pi * f_right2 * t)
+        
+        # 3. High Layer (Solfeggio): 528.0 Hz + 10 Hz Alpha
+        # Introduce slow LFO frequency drift (period 14s, depth 1.5 Hz)
+        lfo3 = np.sin(2.0 * np.pi * 0.07 * t)
+        f_left3 = 528.0 + 1.5 * lfo3
+        f_right3 = 538.0 + 1.5 * lfo3
+        left3 = np.sin(2.0 * np.pi * f_left3 * t)
+        right3 = np.sin(2.0 * np.pi * f_right3 * t)
+        
+        # Combine the 3 layers (grounding bass, medium core, high Solfeggio)
+        # Mix weights: Low layer 1.0, Mid layer 0.6, High layer 0.4
+        left_combined = left1 + 0.6 * left2 + 0.4 * left3
+        right_combined = right1 + 0.6 * right2 + 0.4 * right3
+        
+        # 4. Isochronic Amplitude Modulation (3 Hz raised cosine envelope)
+        envelope = 0.5 * (1.0 + np.cos(2.0 * np.pi * 3.0 * t))
+        left_modulated = left_combined * envelope
+        right_modulated = right_combined * envelope
+        
+        beat = np.column_stack((left_modulated, right_modulated))
+        # Peak normalize the combined beat signal to prevent digital clipping
+        peak = np.max(np.abs(beat))
+        if peak > 0:
+            beat /= peak
+            
+        return (beat * linear_vol).astype(np.float32)
+
     freqs = get_binaural_freqs(beat_type)
     if freqs is None:
         return np.zeros((length_samples, 2), dtype=np.float32)
     f_left, f_right = freqs
-        
-    t = np.arange(length_samples, dtype=np.float64) / sr
     
-    # Pure binaural sine waves (no harmonics)
     left_signal = np.sin(2.0 * np.pi * f_left * t)
     right_signal = np.sin(2.0 * np.pi * f_right * t)
     
-    linear_vol = 10 ** (volume_db / 20.0)
     beat = np.column_stack((left_signal, right_signal)) * linear_vol
     return beat.astype(np.float32)
 
@@ -392,12 +434,17 @@ def mix_final(
             log_cb(f"Loading and processing background music ({music_type})...")
         notch_freqs = None
         if music_notch_enabled and binaural_type != "none":
-            freqs = get_binaural_freqs(binaural_type)
-            if freqs is not None:
-                f_left, f_right = freqs
-                notch_freqs = [[f_left], [f_right]]
-                if log_cb:
-                    log_cb("Applying surgical Notch EQ to music...")
+            if binaural_type == "turbo_manipura":
+                # Sun (126.22 Hz), AMI (330.0 Hz), Solfeggio (528.0 Hz) and their binaural targets
+                notch_freqs = [[126.22, 330.0, 528.0], [129.22, 336.0, 538.0]]
+            else:
+                freqs = get_binaural_freqs(binaural_type)
+                if freqs is not None:
+                    f_left, f_right = freqs
+                    notch_freqs = [[f_left], [f_right]]
+            
+            if notch_freqs is not None and log_cb:
+                log_cb("Applying surgical Notch EQ to music...")
         music = _get_music_audio(music_type, len(final), sr, notch_freqs=notch_freqs)
         linear_vol = 10 ** (music_volume / 20.0)
         final += music * linear_vol
