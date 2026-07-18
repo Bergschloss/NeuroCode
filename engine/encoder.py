@@ -326,29 +326,23 @@ def generate_binaural_beat(beat_type: str, length_samples: int, sr: int, volume_
     t = np.arange(length_samples, dtype=np.float64) / sr
 
     if beat_type == "turbo_manipura":
-        # 1. Low Layer (Sun): 126.22 Hz + 3 Hz Delta
-        # Introduce slow LFO frequency drift to prevent brain habituation (period 33s, depth 1.5 Hz)
-        lfo1 = np.sin(2.0 * np.pi * 0.03 * t)
-        f_left1 = 126.22 + 1.5 * lfo1
-        f_right1 = 129.22 + 1.5 * lfo1
-        left1 = np.sin(2.0 * np.pi * f_left1 * t)
-        right1 = np.sin(2.0 * np.pi * f_right1 * t)
+        # Correct Frequency Modulation (FM) phase integration to prevent time-growing frequency drift distortion.
+        # Phase(t) = 2*pi * f0 * t - (modulation_depth / f_lfo) * cos(2*pi * f_lfo * t)
         
-        # 2. Mid Layer (Detox/Chakra): 330.0 Hz + 6 Hz Theta
-        # Introduce slow LFO frequency drift (period 20s, depth 1.5 Hz)
-        lfo2 = np.sin(2.0 * np.pi * 0.05 * t)
-        f_left2 = 330.0 + 1.5 * lfo2
-        f_right2 = 336.0 + 1.5 * lfo2
-        left2 = np.sin(2.0 * np.pi * f_left2 * t)
-        right2 = np.sin(2.0 * np.pi * f_right2 * t)
+        # 1. Low Layer (Sun): 126.22 Hz + 3 Hz Delta (LFO: 0.03 Hz, depth 1.5 Hz)
+        phase_lfo1 = - (1.5 / 0.03) * np.cos(2.0 * np.pi * 0.03 * t)
+        left1 = np.sin(2.0 * np.pi * 126.22 * t + phase_lfo1)
+        right1 = np.sin(2.0 * np.pi * 129.22 * t + phase_lfo1)
         
-        # 3. High Layer (Solfeggio): 528.0 Hz + 10 Hz Alpha
-        # Introduce slow LFO frequency drift (period 14s, depth 1.5 Hz)
-        lfo3 = np.sin(2.0 * np.pi * 0.07 * t)
-        f_left3 = 528.0 + 1.5 * lfo3
-        f_right3 = 538.0 + 1.5 * lfo3
-        left3 = np.sin(2.0 * np.pi * f_left3 * t)
-        right3 = np.sin(2.0 * np.pi * f_right3 * t)
+        # 2. Mid Layer (Detox/Chakra): 330.0 Hz + 6 Hz Theta (LFO: 0.05 Hz, depth 1.5 Hz)
+        phase_lfo2 = - (1.5 / 0.05) * np.cos(2.0 * np.pi * 0.05 * t)
+        left2 = np.sin(2.0 * np.pi * 330.0 * t + phase_lfo2)
+        right2 = np.sin(2.0 * np.pi * 336.0 * t + phase_lfo2)
+        
+        # 3. High Layer (Solfeggio): 528.0 Hz + 10 Hz Alpha (LFO: 0.07 Hz, depth 1.5 Hz)
+        phase_lfo3 = - (1.5 / 0.07) * np.cos(2.0 * np.pi * 0.07 * t)
+        left3 = np.sin(2.0 * np.pi * 528.0 * t + phase_lfo3)
+        right3 = np.sin(2.0 * np.pi * 538.0 * t + phase_lfo3)
         
         # Combine the 3 layers (grounding bass, medium core, high Solfeggio)
         # Mix weights: Low layer 1.0, Mid layer 0.6, High layer 0.4
