@@ -14,9 +14,10 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 
 - **Neural TTS Engine**: Multi-language Text-to-Speech synthesis (English, Ukrainian, Russian) with automatic per-sentence language detection.
 - **Symmetrical AM Stereo Carriers**: Speech signals are modulated onto symmetrical high-frequency carriers starting at **3000 Hz** up to **18000 Hz** across both left and right channels to enforce bilateral brain hemisphere stimulation.
-- **Ultra-HD Mode**: A premium, high-density 4-layer configuration (2 layers panned Left, 2 layers panned Right) featuring randomized carrier offsets ($\pm 300\text{ Hz}$) and independent speed-up factors.
+- **Massive Multi-Layering**: Supports dense psychoacoustic stacking of up to 24 parallel voice layers (default 12) with randomized speed ($\pm 0.05\text{x}$) and frequency jitters ($\pm 150\text{ Hz}$) to eliminate phantom mono images and create a wide, diffuse subliminal field.
+- **Ultra-HD Mode**: A specialized, highly-randomized 4-layer configuration (2 layers panned Left, 2 layers panned Right) featuring extreme carrier offsets ($\pm 300\text{ Hz}$) and independent speed-up factors.
 - **Golden Speed Range**: Asynchronous layer speech stretching randomized between **2.0x** and **4.0x** — the optimal speed for subconscious processing and auditory comprehension.
-- **Instant Entry Technology**: Base carrier layers start with a $0\text{-second}$ offset, ensuring that affirmation signals enter the listener's subconscious immediately without initial silent gaps.
+- **Instant Entry Technology**: The first left-channel carrier starts with a $0\text{-second}$ offset, ensuring signals enter the subconscious immediately, while the right channel is offset to prevent cross-channel correlation.
 - **Brainwave Entrainment (Binaural Beats)**: Generates precise binaural frequencies to stimulate targeted mental states:
   - **Delta (2 Hz)**: Deep sleep, physical repair, and restoration.
   - **Theta (4 Hz)**: Deep meditation, visualization, and subconscious openness.
