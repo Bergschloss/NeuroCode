@@ -19,9 +19,9 @@ STATIC = Path("static")
 
 def generate_auto_filename(text: str, music_type: str) -> str:
     import re
-    # Extract first 4 words, keeping alphanumeric characters (supporting Cyrillic/Ukrainian)
+    # Extract first 2 words, keeping alphanumeric characters (supporting Cyrillic/Ukrainian)
     words = re.findall(r'\w+', text, flags=re.UNICODE)
-    text_part = "_".join(words[:4])
+    text_part = "_".join(words[:2])
     if not text_part:
         text_part = "subliminal"
         
