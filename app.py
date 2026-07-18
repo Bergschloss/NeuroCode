@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI, Form
+from fastapi import BackgroundTasks, FastAPI, Form, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -16,6 +16,28 @@ app = FastAPI(title="Neurocode Studio")
 OUTPUTS = Path("outputs")
 OUTPUTS.mkdir(exist_ok=True)
 STATIC = Path("static")
+
+def generate_auto_filename(text: str, music_type: str) -> str:
+    import re
+    # Extract first 4 words, keeping alphanumeric characters (supporting Cyrillic/Ukrainian)
+    words = re.findall(r'\w+', text, flags=re.UNICODE)
+    text_part = "_".join(words[:4])
+    if not text_part:
+        text_part = "subliminal"
+        
+    music_part = ""
+    if music_type and music_type != "none":
+        clean_music = re.sub(r'[^\w\-]', '_', music_type)
+        music_part = f"_{clean_music}"
+        
+    rand_part = uuid.uuid4().hex[:4]
+    full_name = f"{text_part}{music_part}_{rand_part}"
+    
+    # Final cleanup of forbidden characters for safety
+    full_name = re.sub(r'[\\/*?:"<>|]', "", full_name)
+    if len(full_name) > 120:
+        full_name = full_name[:120]
+    return full_name
 
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
@@ -87,6 +109,9 @@ async def generate(
     save_encoded: str = Form("true"),
     save_raw: str = Form("false"),
 ):
+    if not export_dir or not export_dir.strip():
+        raise HTTPException(status_code=400, detail="Output directory is required")
+
     background_tasks.add_task(cleanup_old_outputs, 3600)
     job_id = uuid.uuid4().hex[:8]
 
@@ -108,9 +133,8 @@ async def generate(
             print(f"[EXPORT ERROR] Could not create custom directory {export_dir}, falling back to outputs/: {e}")
 
     # Determine custom filename
-    fname = job_id
-    if export_filename:
-        base_name = export_filename
+    if export_filename and export_filename.strip():
+        base_name = export_filename.strip()
         if base_name.lower().endswith(".wav"):
             base_name = base_name[:-4]
         import re
@@ -118,6 +142,10 @@ async def generate(
         base_name = base_name.strip()
         if base_name:
             fname = base_name
+        else:
+            fname = generate_auto_filename(text_main, music_type)
+    else:
+        fname = generate_auto_filename(text_main, music_type)
 
     # Encoded file path resolution
     if export_filename and fname != job_id:

@@ -302,15 +302,29 @@ async function generate() {
   const main = document.getElementById('text-main').value.trim();
   if (!main) { alert('Affirmation text is required'); return; }
 
-  const btn = document.getElementById('btn-gen');
-  btn.disabled = true; btn.innerHTML = '<span>Processing...</span>';
-  document.getElementById('prog-wrap').style.display = 'block';
-  document.getElementById('dl-wrap').style.display = 'none';
-  document.getElementById('err-txt').style.display = 'none';
-  setProgress(5, 'Sending request...');
+  const exportDirInput = document.getElementById('export-dir');
+  const exportDir = exportDirInput ? exportDirInput.value.trim() : '';
+  if (!exportDir) {
+    alert('Please specify the Output (Export Directory) folder.');
+    if (exportDirInput) exportDirInput.focus();
+    return;
+  }
 
   const autosaveEncoded = document.getElementById('export-autosave-encoded').checked;
   const autosaveRaw = document.getElementById('export-autosave-raw').checked;
+
+  if (!autosaveEncoded && !autosaveRaw) {
+    alert('Please check at least one save option (Auto-save encoded WAV or Auto-save raw voice).');
+    return;
+  }
+
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.innerHTML = '<span>Processing...</span>';
+  document.getElementById('prog-wrap').style.display = 'block';
+  const successWrap = document.getElementById('success-wrap');
+  if (successWrap) successWrap.style.display = 'none';
+  document.getElementById('err-txt').style.display = 'none';
+  setProgress(5, 'Sending request...');
 
   const fd = new FormData();
   fd.append('client_session_id', clientSessionId);
@@ -330,7 +344,7 @@ async function generate() {
   fd.append('music_volume',     document.getElementById('music-volume').value);
   fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
   fd.append('export_filename', document.getElementById('export-filename').value.trim());
-  fd.append('export_dir',      (autosaveEncoded || autosaveRaw) ? document.getElementById('export-dir').value.trim() : '');
+  fd.append('export_dir',      exportDir);
   fd.append('save_encoded',    autosaveEncoded ? 'true' : 'false');
   fd.append('save_raw',        autosaveRaw ? 'true' : 'false');
 
@@ -433,12 +447,42 @@ function setProgress(pct, msg) {
   // Render visualizer
   renderActiveLoader(pct, msg);
 }
-function showDownload(job_id) {
-  document.getElementById('dl-link').href = '/download/'+job_id;
-  document.getElementById('dl-raw-link').href = '/download_raw/'+job_id;
-  const w = document.getElementById('dl-wrap');
-  w.style.display = 'grid';
-  w.scrollIntoView({behavior:'smooth'});
+async function showDownload(job_id) {
+  try {
+    const d = await fetch('/status/'+job_id).then(r=>r.json());
+    const encodedPath = d.output_path || '-';
+    const rawPath = d.output_raw_path || '-';
+    const autosaveEncoded = document.getElementById('export-autosave-encoded').checked;
+    const autosaveRaw = document.getElementById('export-autosave-raw').checked;
+    
+    const encodedEl = document.getElementById('success-path-encoded');
+    if (encodedEl) {
+      if (autosaveEncoded) {
+        encodedEl.style.display = 'block';
+        encodedEl.textContent = `Encoded: ${encodedPath}`;
+      } else {
+        encodedEl.style.display = 'none';
+      }
+    }
+
+    const rawEl = document.getElementById('success-path-raw');
+    if (rawEl) {
+      if (autosaveRaw) {
+        rawEl.style.display = 'block';
+        rawEl.textContent = `Raw: ${rawPath}`;
+      } else {
+        rawEl.style.display = 'none';
+      }
+    }
+    
+    const w = document.getElementById('success-wrap');
+    if (w) {
+      w.style.display = 'block';
+      w.scrollIntoView({behavior:'smooth'});
+    }
+  } catch (e) {
+    console.error("Error displaying success paths:", e);
+  }
 }
 function showError(msg) {
   const el = document.getElementById('err-txt');
@@ -472,7 +516,7 @@ function resetBtn() {
     gsState.textContent = (STATES[name] || name) + (extra ? ' · ' + extra : '');
   }
   const fill = document.getElementById('prog-fill');
-  const dl = document.getElementById('dl-wrap');
+  const successWrap = document.getElementById('success-wrap');
   const err = document.getElementById('err-txt');
   const btn = document.getElementById('btn-gen');
   if (fill) new MutationObserver(()=>{
@@ -480,9 +524,9 @@ function resetBtn() {
     if (btn && btn.disabled && w < 100) setState('processing', Math.round(w) + '%');
     else if (w >= 100) setState('done');
   }).observe(fill, {attributes:true, attributeFilter:['style']});
-  if (dl) new MutationObserver(()=>{
-    if (dl.style.display && dl.style.display !== 'none') setState('done');
-  }).observe(dl, {attributes:true, attributeFilter:['style']});
+  if (successWrap) new MutationObserver(()=>{
+    if (successWrap.style.display && successWrap.style.display !== 'none') setState('done');
+  }).observe(successWrap, {attributes:true, attributeFilter:['style']});
   if (err) new MutationObserver(()=>{
     if (err.style.display && err.style.display !== 'none') setState('error');
   }).observe(err, {attributes:true, attributeFilter:['style']});

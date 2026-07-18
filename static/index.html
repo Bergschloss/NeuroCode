@@ -319,8 +319,8 @@
       <div class="field">
         <div class="field-label">Filename</div>
         <div class="field-body">
-          <input type="text" id="export-filename" placeholder="Default (random unique ID)"/>
-          <div class="help-block">Specify a custom name for the exported file (e.g. my_track). Leave empty for a random unique ID.</div>
+          <input type="text" id="export-filename" placeholder="Leave empty for auto-generated name"/>
+          <div class="help-block">Specify a custom name for the exported file (e.g. my_track). Leave empty to auto-generate a name based on the text and music.</div>
         </div>
       </div>
 
@@ -377,18 +377,14 @@
 
   <div class="error-text" id="err-txt"></div>
 
-  <!-- DOWNLOADS -->
-  <div class="download-wrap" id="dl-wrap">
-    <a class="btn-download" id="dl-link" href="#" download>
-      <span class="dl-label">File · 01 / Encoded</span>
-      <span class="dl-main">Download<br/>Encoded WAV</span>
-      <span class="dl-icon">↗</span>
-    </a>
-    <a class="btn-download" id="dl-raw-link" href="#" download>
-      <span class="dl-label">File · 02 / Raw voice</span>
-      <span class="dl-main">Download<br/>Raw Voice</span>
-      <span class="dl-icon">↗</span>
-    </a>
+  <!-- SUCCESS NOTIFICATION -->
+  <div class="success-wrap" id="success-wrap" style="display: none; text-align: center; padding: 24px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.01); margin-top: 20px;">
+    <div style="font-size: 16px; font-weight: 600; color: var(--accent-light); margin-bottom: 8px; font-family: 'Space Mono', monospace; letter-spacing: 1px;">✓ GENERATION COMPLETE</div>
+    <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;" id="success-message">
+      Files saved to:<br/>
+      <code id="success-path-encoded" style="display:block; margin: 10px 0; color: #fff; font-family: 'Space Mono', monospace; font-size: 12px; word-break: break-all; padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 4px; border: 1px solid var(--border-color);">-</code>
+      <code id="success-path-raw" style="display:block; margin: 10px 0; color: var(--text-muted); font-family: 'Space Mono', monospace; font-size: 12px; word-break: break-all; padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 4px; border: 1px solid var(--border-color);">-</code>
+    </div>
   </div>
 
   <!-- FOOTER -->
