@@ -92,11 +92,10 @@ def encode_multilayer(
     progress_cb: Callable[[int], None] = None,
     p_start: int = 40,
     p_end: int = 90,
-    ultra_hd_mode: bool = False,
     log_cb: Callable[[str], None] = None,
 ) -> np.ndarray:
     """
-    Full-spectrum AM modulation with Instant Entry guarantee and stereo symmetry / Ultra-HD mode.
+    Full-spectrum AM modulation with Instant Entry guarantee and stereo symmetry.
     """
     # 1. Prepare source
     audio = _trim_silence(audio.astype(np.float32), threshold=0.01)
@@ -114,71 +113,47 @@ def encode_multilayer(
 
     # 2. Build layers configuration
     layers_config = []
-    if ultra_hd_mode:
-        # 4 layers total: 2 for Left (channel 0), 2 for Right (channel 1)
-        # Left channel layers:
-        cf_l0 = 3000.0 + np.random.uniform(-300.0, 300.0)
-        sf_l0 = np.random.uniform(speed_min, speed_max)
-        cf_l1 = 18000.0 + np.random.uniform(-300.0, 300.0)
-        sf_l1 = np.random.uniform(speed_min, speed_max)
-        
-        # Right channel layers:
-        cf_r0 = 3000.0 + np.random.uniform(-300.0, 300.0)
-        sf_r0 = np.random.uniform(speed_min, speed_max)
-        cf_r1 = 18000.0 + np.random.uniform(-300.0, 300.0)
-        sf_r1 = np.random.uniform(speed_min, speed_max)
-        
-        layers_config = [
-            {'channel': 0, 'freq': cf_l0, 'speed': sf_l0, 'offset_zero': True},  # Instant entry on Left
-            {'channel': 0, 'freq': cf_l1, 'speed': sf_l1, 'offset_zero': False},
-            {'channel': 1, 'freq': cf_r0, 'speed': sf_r0, 'offset_zero': False}, # Random start on Right to avoid mono alignment
-            {'channel': 1, 'freq': cf_r1, 'speed': sf_r1, 'offset_zero': False},
-        ]
-        if log_cb:
-            log_cb(f"Ultra-HD (4 layers): L1={cf_l0:.1f} Hz ({sf_l0:.2f}x), L2={cf_l1:.1f} Hz ({sf_l1:.2f}x)")
-            log_cb(f"Ultra-HD (4 layers): R1={cf_r0:.1f} Hz ({sf_r0:.2f}x), R2={cf_r1:.1f} Hz ({sf_r1:.2f}x)")
+    # Standard mode: symmetrical stereo grid
+    n_left = n_layers // 2
+    n_right = n_layers - n_left
+    
+    if n_left > 1:
+        left_freqs = np.linspace(3000.0, 18000.0, n_left) + np.random.uniform(-150.0, 150.0, n_left)
+        left_speeds = np.linspace(speed_min, speed_max, n_left) + np.random.uniform(-0.05, 0.05, n_left)
     else:
-        # Standard mode: symmetrical stereo grid
-        n_left = n_layers // 2
-        n_right = n_layers - n_left
+        left_freqs = np.array([3000.0])
+        left_speeds = np.array([speed_min])
         
-        if n_left > 1:
-            left_freqs = np.linspace(3000.0, 18000.0, n_left) + np.random.uniform(-150.0, 150.0, n_left)
-            left_speeds = np.linspace(speed_min, speed_max, n_left) + np.random.uniform(-0.05, 0.05, n_left)
-        else:
-            left_freqs = np.array([3000.0])
-            left_speeds = np.array([speed_min])
-            
-        if n_right > 1:
-            right_freqs = np.linspace(3000.0, 18000.0, n_right) + np.random.uniform(-150.0, 150.0, n_right)
-            right_speeds = np.linspace(speed_min, speed_max, n_right) + np.random.uniform(-0.05, 0.05, n_right)
-        else:
-            right_freqs = np.array([3000.0])
-            right_speeds = np.array([speed_min])
-            
-        # Ensure speeds do not drop below 1.0
-        left_speeds = np.clip(left_speeds, 1.0, 20.0)
-        right_speeds = np.clip(right_speeds, 1.0, 20.0)
-            
-        # Add Left channel layers (even panning)
-        for j in range(n_left):
-            layers_config.append({
-                'channel': 0,
-                'freq': left_freqs[j],
-                'speed': left_speeds[j],
-                'offset_zero': (j == 0) # Instant entry on Left Layer 0
-            })
-        # Add Right channel layers (odd panning)
-        for j in range(n_right):
-            layers_config.append({
-                'channel': 1,
-                'freq': right_freqs[j],
-                'speed': right_speeds[j],
-                'offset_zero': False # All Right layers start randomly to prevent phantom mono center
-            })
-            
-        if log_cb:
-            log_cb(f"Standard mode: {n_left} layers Left, {n_right} layers Right (range 3000 - 18000 Hz, step {15000 / max(1, n_left - 1):.1f} Hz)")
+    if n_right > 1:
+        right_freqs = np.linspace(3000.0, 18000.0, n_right) + np.random.uniform(-150.0, 150.0, n_right)
+        right_speeds = np.linspace(speed_min, speed_max, n_right) + np.random.uniform(-0.05, 0.05, n_right)
+    else:
+        right_freqs = np.array([3000.0])
+        right_speeds = np.array([speed_min])
+        
+    # Ensure speeds do not drop below 1.0
+    left_speeds = np.clip(left_speeds, 1.0, 20.0)
+    right_speeds = np.clip(right_speeds, 1.0, 20.0)
+        
+    # Add Left channel layers (even panning)
+    for j in range(n_left):
+        layers_config.append({
+            'channel': 0,
+            'freq': left_freqs[j],
+            'speed': left_speeds[j],
+            'offset_zero': (j == 0) # Instant entry on Left Layer 0
+        })
+    # Add Right channel layers (odd panning)
+    for j in range(n_right):
+        layers_config.append({
+            'channel': 1,
+            'freq': right_freqs[j],
+            'speed': right_speeds[j],
+            'offset_zero': False # All Right layers start randomly to prevent phantom mono center
+        })
+        
+    if log_cb:
+        log_cb(f"Processing: {n_left} layers Left, {n_right} layers Right (range 3000 - 18000 Hz, step {15000 / max(1, n_left - 1):.1f} Hz)")
 
     # 3. Process each layer
     total_layers = len(layers_config)
@@ -380,7 +355,6 @@ def mix_final(
     music_notch_enabled: bool = False,
     progress_cb: Callable[[int], None] = None,
     log_cb: Callable[[str], None] = None,
-    ultra_hd_mode: bool = False,
 ) -> None:
     """
     Build the WAV with actual fade in / fade out and stereo.
@@ -394,7 +368,7 @@ def mix_final(
     main_encoded = encode_multilayer(
         main_audio, sr, n_layers, speed_min, speed_max,
         progress_cb=progress_cb, p_start=25, p_end=90,
-        ultra_hd_mode=ultra_hd_mode, log_cb=log_cb
+        log_cb=log_cb
     )
     
     if log_cb:

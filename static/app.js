@@ -177,11 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const soundInput = document.getElementById('export-sound');
     if (soundInput) soundInput.checked = (savedSound === 'true');
   }
-  const savedUltraHd = localStorage.getItem('ncs_ultra_hd_mode');
-  if (savedUltraHd !== null) {
-    const ultraHdInput = document.getElementById('ultra-hd-mode');
-    if (ultraHdInput) ultraHdInput.checked = (savedUltraHd === 'true');
-  }
 
   // Save to localStorage on input modification
   const dirInputEl = document.getElementById('export-dir');
@@ -214,14 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('ncs_export_sound', e.target.checked);
     });
   }
-  const ultraHdEl = document.getElementById('ultra-hd-mode');
-  if (ultraHdEl) {
-    ultraHdEl.addEventListener('change', (e) => {
-      localStorage.setItem('ncs_ultra_hd_mode', e.target.checked);
-    });
-  }
 
-  onUltraHdChange();
   updateLoaderVisibility();
   renderActiveLoader(0, 'STANDBY');
 
@@ -310,26 +298,6 @@ function updateNotchDesc() {
 updateNotchDesc();
 document.getElementById('binaural-type').addEventListener('change', updateNotchDesc);
 
-function onUltraHdChange() {
-  const ultraHdInput = document.getElementById('ultra-hd-mode');
-  if (!ultraHdInput) return;
-  const isUltraHd = ultraHdInput.checked;
-  const layersSlider = document.getElementById('layers');
-  const layersBlock = document.getElementById('layers-slider-block');
-  if (layersSlider) {
-    layersSlider.disabled = isUltraHd;
-  }
-  if (layersBlock) {
-    if (isUltraHd) {
-      layersBlock.style.opacity = '0.4';
-      layersBlock.style.pointerEvents = 'none';
-    } else {
-      layersBlock.style.opacity = '1';
-      layersBlock.style.pointerEvents = 'auto';
-    }
-  }
-}
-
 async function generate() {
   const main = document.getElementById('text-main').value.trim();
   if (!main) { alert('Affirmation text is required'); return; }
@@ -365,7 +333,6 @@ async function generate() {
   fd.append('export_dir',      (autosaveEncoded || autosaveRaw) ? document.getElementById('export-dir').value.trim() : '');
   fd.append('save_encoded',    autosaveEncoded ? 'true' : 'false');
   fd.append('save_raw',        autosaveRaw ? 'true' : 'false');
-  fd.append('ultra_hd_mode',   document.getElementById('ultra-hd-mode').checked ? 'true' : 'false');
 
   try {
     const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());

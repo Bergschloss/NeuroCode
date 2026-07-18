@@ -86,7 +86,6 @@ async def generate(
     export_dir: str = Form(None),
     save_encoded: str = Form("true"),
     save_raw: str = Form("false"),
-    ultra_hd_mode: str = Form("false"),
 ):
     background_tasks.add_task(cleanup_old_outputs, 3600)
     job_id = uuid.uuid4().hex[:8]
@@ -160,7 +159,6 @@ async def generate(
     }
     voices = {"uk": voice_uk, "ru": voice_ru, "en": voice_en}
     notch_flag = music_notch_enabled.lower() in ("true", "on", "1", "yes")
-    ultra_hd_flag = ultra_hd_mode.lower() in ("true", "on", "1", "yes")
     background_tasks.add_task(
         _run,
         job_id,
@@ -174,7 +172,6 @@ async def generate(
         notch_flag,
         output_path, output_raw_path,
         client_session_id,
-        ultra_hd_flag,
     )
     return {"job_id": job_id}
 
@@ -203,7 +200,6 @@ async def _run(
     music_notch_enabled,
     out, out_raw,
     client_session_id=None,
-    ultra_hd_mode=False,
 ):
     try:
         add_job_log(job_id, "Initializing generation session...")
@@ -265,7 +261,6 @@ async def _run(
             music_notch_enabled,
             cb,
             log_cb,
-            ultra_hd_mode,
         )
 
         jobs[job_id].update({"status": "done", "progress": 100})
