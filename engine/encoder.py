@@ -327,22 +327,21 @@ def generate_binaural_beat(beat_type: str, length_samples: int, sr: int, volume_
 
     if beat_type == "turbo_manipura":
         # Correct Frequency Modulation (FM) phase integration to prevent time-growing frequency drift distortion.
+        # We use a single, shared LFO (0.05 Hz) to keep all three carrier layers in perfect harmonic sync.
         # Phase(t) = 2*pi * f0 * t - (modulation_depth / f_lfo) * cos(2*pi * f_lfo * t)
+        phase_lfo = - (1.5 / 0.05) * np.cos(2.0 * np.pi * 0.05 * t)
         
-        # 1. Low Layer (Sun): 126.22 Hz + 3 Hz Delta (LFO: 0.03 Hz, depth 1.5 Hz)
-        phase_lfo1 = - (1.5 / 0.03) * np.cos(2.0 * np.pi * 0.03 * t)
-        left1 = np.sin(2.0 * np.pi * 126.22 * t + phase_lfo1)
-        right1 = np.sin(2.0 * np.pi * 129.22 * t + phase_lfo1)
+        # 1. Low Layer (Sun): 126.22 Hz + 3 Hz Delta
+        left1 = np.sin(2.0 * np.pi * 126.22 * t + phase_lfo)
+        right1 = np.sin(2.0 * np.pi * 129.22 * t + phase_lfo)
         
-        # 2. Mid Layer (Detox/Chakra): 330.0 Hz + 6 Hz Theta (LFO: 0.05 Hz, depth 1.5 Hz)
-        phase_lfo2 = - (1.5 / 0.05) * np.cos(2.0 * np.pi * 0.05 * t)
-        left2 = np.sin(2.0 * np.pi * 330.0 * t + phase_lfo2)
-        right2 = np.sin(2.0 * np.pi * 336.0 * t + phase_lfo2)
+        # 2. Mid Layer (Detox/Chakra): 330.0 Hz + 6 Hz Theta
+        left2 = np.sin(2.0 * np.pi * 330.0 * t + phase_lfo)
+        right2 = np.sin(2.0 * np.pi * 336.0 * t + phase_lfo)
         
-        # 3. High Layer (Solfeggio): 528.0 Hz + 10 Hz Alpha (LFO: 0.07 Hz, depth 1.5 Hz)
-        phase_lfo3 = - (1.5 / 0.07) * np.cos(2.0 * np.pi * 0.07 * t)
-        left3 = np.sin(2.0 * np.pi * 528.0 * t + phase_lfo3)
-        right3 = np.sin(2.0 * np.pi * 538.0 * t + phase_lfo3)
+        # 3. High Layer (Solfeggio): 528.0 Hz + 10 Hz Alpha
+        left3 = np.sin(2.0 * np.pi * 528.0 * t + phase_lfo)
+        right3 = np.sin(2.0 * np.pi * 538.0 * t + phase_lfo)
         
         # Combine the 3 layers (grounding bass, medium core, high Solfeggio)
         # Mix weights: Low layer 1.0, Mid layer 0.6, High layer 0.4
