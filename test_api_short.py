@@ -2,6 +2,7 @@
 import requests
 import time
 import soundfile as sf
+from pathlib import Path
 
 BASE = "http://127.0.0.1:7860"
 
@@ -20,6 +21,7 @@ def test_generate_and_download():
             "silence_end": 0.5,
             "binaural_type": "none",
             "music_type": "none",
+            "export_dir": str((Path(__file__).parent / "outputs").resolve()),
         },
         timeout=30,
     )
@@ -51,7 +53,8 @@ def test_generate_and_download():
     if os.path.exists(path):
         os.remove(path)
         
-    assert sr in (44100, 48000), f"Expected 44100 or 48000 Hz, got {sr}"
+    assert sr == 44100, f"Expected 44100 Hz, got {sr}"
+    assert sf.info(path).subtype == "PCM_16", "Expected 16-bit PCM WAV"
     assert len(data.shape) == 2 and data.shape[1] == 2, "Expected stereo output"
     assert len(data) > 0, "Empty audio file"
     print(f"OK: verified online synthesis and download successfully, duration={len(data)/sr:.2f}s, shape={data.shape}")

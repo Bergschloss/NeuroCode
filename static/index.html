@@ -85,6 +85,60 @@
     </div>
   </div>
 
+  <!-- TELEGRAM EXPORT -->
+  <section class="section telegram-section">
+    <header class="section-head">
+      <div class="section-title">Telegram Bot Integration</div>
+      <div class="section-meta">Auto-Upload & Alerts</div>
+    </header>
+
+    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+      <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
+        <input type="checkbox" id="tg-enabled" style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;" onchange="toggleTgFields()"/>
+        <span>Enable Telegram Upload on Completion</span>
+      </label>
+    </div>
+
+    <div id="tg-fields-block" style="display: none; transition: opacity 0.3s ease;">
+      <div class="grid-two-cols telegram-fields-grid">
+        <div class="field">
+          <div class="field-label">Bot Token</div>
+          <div class="field-body">
+            <input class="telegram-token-input" type="text" id="tg-token" placeholder="Enter Telegram Bot Token" autocomplete="off" spellcheck="false"/>
+            <button class="telegram-helper" type="button" onclick="openTelegramHelper('BotFather')" aria-label="Open BotFather in Telegram">
+              <span class="telegram-helper-dot" aria-hidden="true"></span>
+              <svg class="telegram-helper-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21.4 3.4 18.2 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9-8.1c.4-.4-.1-.6-.6-.2L5.8 12.8 1 11.3c-1-.3-1-1 .2-1.5L20 2.6c.9-.3 1.7.2 1.4.8Z"/>
+              </svg>
+              <span>@BotFather</span>
+              <span class="telegram-helper-arrow" aria-hidden="true">↗</span>
+            </button>
+            <div class="help-block">HTTP API Token from @BotFather (e.g. 123456789:ABCDefGh...).</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Chat ID / User ID</div>
+          <div class="field-body">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="tg-chat-id" placeholder="Enter Telegram Chat ID" style="flex: 1; font-family: monospace;"/>
+              <button class="loader-settings-btn" id="btn-tg-test" style="height: 38px; padding: 0 16px; margin: 0; white-space: nowrap;" onclick="testTelegramConnection()">Test Send</button>
+            </div>
+            <button class="telegram-helper" type="button" onclick="openTelegramHelper('userinfobot')" aria-label="Open userinfobot in Telegram">
+              <span class="telegram-helper-dot" aria-hidden="true"></span>
+              <svg class="telegram-helper-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21.4 3.4 18.2 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9-8.1c.4-.4-.1-.6-.6-.2L5.8 12.8 1 11.3c-1-.3-1-1 .2-1.5L20 2.6c.9-.3 1.7.2 1.4.8Z"/>
+              </svg>
+              <span>@userinfobot</span>
+              <span class="telegram-helper-arrow" aria-hidden="true">↗</span>
+            </button>
+            <div class="help-block">Your personal chat ID (e.g. 8988761865). Use @userinfobot to find it.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- SECTION 01 — TEXT INPUT -->
   <section class="section">
     <header class="section-head">
@@ -119,7 +173,7 @@
           <span id="dur-main">—</span>
         </div>
         <div class="lang-preview" id="preview-main"></div>
-        <div class="help-block">Enter your affirmation sentences. Each sentence will be synthesized and panned/layered across different speeds and carrier frequencies for deep subconscious integration.</div>
+        <div class="help-block">Enter affirmation sentences to synthesize and layer across different speeds and carrier frequencies. The generated audio is experimental and is not a medical treatment.</div>
       </div>
     </div>
   </section>
@@ -257,7 +311,7 @@
             </div>
           </div>
         </div>
-        <div class="help-block">Binaural beats to stimulate target brain states (Theta for meditation, Alpha for focus, Delta for sleep/repair, Beta for activity). Headphones required.</div>
+        <div class="help-block">Optional binaural beat presets for experimentation. Headphones are required to perceive the channel-frequency difference; specific health or cognitive effects are not guaranteed.</div>
       </div>
     </div>
 
@@ -318,7 +372,7 @@
         <input type="checkbox" id="notch-toggle">
         <span class="slider"></span>
       </label>
-      <div class="help-block">Surgical notch filter that carves out the exact carrier frequencies of the binaural beat from the background music, preventing the therapeutic effect from being masked.</div>
+      <div class="help-block">A narrow notch filter that reduces background-music energy at the selected carrier frequencies.</div>
     </div>
   </section>
 
@@ -368,53 +422,17 @@
     </div>
   </section>
 
-  <!-- SECTION 05 — TELEGRAM EXPORT -->
-  <section class="section">
-    <header class="section-head">
-      <div class="section-title">Telegram Bot Integration</div>
-      <div class="section-meta">Auto-Upload & Alerts</div>
-    </header>
-
-    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
-      <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
-        <input type="checkbox" id="tg-enabled" style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;" onchange="toggleTgFields()"/>
-        <span>Enable Telegram Upload on Completion</span>
-      </label>
-    </div>
-
-    <div id="tg-fields-block" style="display: none; transition: opacity 0.3s ease;">
-      <div class="grid-two-cols">
-        <div class="field">
-          <div class="field-label">Bot Token</div>
-          <div class="field-body">
-            <input type="password" id="tg-token" placeholder="Enter Telegram Bot Token" style="font-family: monospace;"/>
-            <div class="help-block">HTTP API Token from @BotFather (e.g. 123456789:ABCDefGh...).</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-label">Chat ID / User ID</div>
-          <div class="field-body">
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="text" id="tg-chat-id" placeholder="Enter Telegram Chat ID" style="flex: 1; font-family: monospace;"/>
-              <button class="loader-settings-btn" id="btn-tg-test" style="height: 38px; padding: 0 16px; margin: 0; white-space: nowrap;" onclick="testTelegramConnection()">Test Send</button>
-            </div>
-            <div class="help-block">Your personal chat ID (e.g. 8988761865). Use @userinfobot to find it.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
   <!-- ACTION -->
   <div class="action">
     <div class="action-meta">
-      Output · <strong>WAV / 48kHz / Stereo</strong><br/>
+      Output · <strong>WAV / 44.1 kHz / 16-bit / Stereo</strong><br/>
       Composer-grade encoding · long-form
     </div>
     <button class="btn-generate" id="btn-gen" onclick="generate()">
       <span>Generate WAV</span>
+    </button>
+    <button class="loader-settings-btn" id="btn-cancel" style="display:none; height:48px; padding:0 20px;" onclick="cancelGeneration()">
+      Cancel
     </button>
   </div>
 
@@ -457,7 +475,7 @@
     </div>
     <div>
       <h4>Format</h4>
-      WAV · 48 kHz · 16-bit · stereo<br/>
+      WAV · 44.1 kHz · 16-bit · stereo<br/>
       Long-form · up to 60 min<br/>
       Composer-grade
     </div>

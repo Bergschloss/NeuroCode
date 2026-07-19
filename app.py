@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 import uuid
 from pathlib import Path
@@ -9,13 +10,21 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from engine.encoder import mix_final, get_music_tracks
-from engine.tts import TARGET_SR, generate_tts_multilang, generate_tts_single
+from engine.tts import TARGET_SR, generate_tts_multilang
+from job_state import GenerationCancelled, JobStore, TtsCache
+from telegram_client import (
+    load_config as load_telegram_config,
+    save_config as save_telegram_config_file,
+    send_document as send_telegram_document,
+    test_connection as test_telegram_connection,
+)
 
 app = FastAPI(title="Neurocode Studio")
 
-OUTPUTS = Path("outputs")
+APP_DIR = Path(__file__).resolve().parent
+OUTPUTS = APP_DIR / "outputs"
 OUTPUTS.mkdir(exist_ok=True)
-STATIC = Path("static")
+STATIC = APP_DIR / "static"
 
 def generate_auto_filename(text: str, music_type: str) -> str:
     import re
@@ -41,42 +50,16 @@ def generate_auto_filename(text: str, music_type: str) -> str:
 
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
-import json
-
-def send_telegram_document(token: str, chat_id: str, file_path: str, caption: str = "") -> dict:
-    import requests
-    import os
-    url = f"https://api.telegram.org/bot{token}/sendDocument"
-    if not os.path.exists(file_path):
-        return {"ok": False, "error": f"File not found: {file_path}"}
-    
-    file_size = os.path.getsize(file_path)
-    if file_size > 50 * 1024 * 1024:
-        return {
-            "ok": False,
-            "error": f"File size ({file_size / 1024 / 1024:.1f} MB) exceeds Telegram bot upload limit of 50 MB."
-        }
-        
-    try:
-        with open(file_path, 'rb') as f:
-            files = {'document': (os.path.basename(file_path), f)}
-            data = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'}
-            response = requests.post(url, files=files, data=data, timeout=120)
-            return response.json()
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-TELEGRAM_CONFIG_FILE = Path("telegram_config.json")
 
 @app.get("/telegram_config")
 async def get_telegram_config():
-    if TELEGRAM_CONFIG_FILE.exists():
-        try:
-            with open(TELEGRAM_CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[TG CONFIG ERROR] Read failed: {e}")
-    return {"enabled": False, "token": "", "chat_id": ""}
+    config = load_telegram_config()
+    return {
+        "enabled": config["enabled"],
+        "configured": bool(config["token"] and config["chat_id"]),
+        "token": config["token"],
+        "chat_id": config["chat_id"],
+    }
 
 @app.post("/telegram_config")
 async def save_telegram_config(
@@ -85,14 +68,8 @@ async def save_telegram_config(
     chat_id: str = Form(""),
 ):
     enabled_bool = enabled.lower() in ("true", "1", "yes", "on")
-    config = {
-        "enabled": enabled_bool,
-        "token": token.strip(),
-        "chat_id": chat_id.strip()
-    }
     try:
-        with open(TELEGRAM_CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=4, ensure_ascii=False)
+        save_telegram_config_file(enabled_bool, token, chat_id)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save telegram config: {e}")
@@ -102,15 +79,12 @@ async def test_telegram_config(
     token: str = Form(...),
     chat_id: str = Form(...),
 ):
-    import requests
-    url = f"https://api.telegram.org/bot{token.strip()}/sendMessage"
     try:
-        response = requests.post(url, data={
-            "chat_id": chat_id.strip(),
-            "text": "⚡️ *Neurocode Studio*\n\nTelegram Bot connection test successful!\nYour bot is ready to receive generated audio files.",
-            "parse_mode": "Markdown"
-        }, timeout=10)
-        res = response.json()
+        configured = load_telegram_config()
+        res = test_telegram_connection(
+            token.strip() or configured["token"],
+            chat_id.strip() or configured["chat_id"],
+        )
         if res.get("ok"):
             return {"status": "success"}
         else:
@@ -118,8 +92,56 @@ async def test_telegram_config(
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
-jobs: dict[str, dict] = {}
-tts_cache: dict = {}
+job_store = JobStore()
+tts_cache = TtsCache()
+generation_slots = asyncio.Semaphore(1)
+
+
+def validate_generation_params(
+    *,
+    text_main: str,
+    layers: int,
+    speed_min: float,
+    speed_max: float,
+    silence_start: float,
+    silence_end: float,
+    binaural_type: str,
+    binaural_volume: float,
+    music_volume: float,
+    voice_volume: float,
+    lang_main: str,
+    save_encoded: bool,
+    save_raw: bool,
+) -> None:
+    errors = []
+    if not text_main.strip():
+        errors.append("Affirmation text cannot be empty")
+    if len(text_main) > 10_000:
+        errors.append("Affirmation text cannot exceed 10,000 characters")
+    if layers < 4 or layers > 32 or layers % 2:
+        errors.append("Layers must be an even number from 4 to 32")
+    if not 2.0 <= speed_min <= 9.0:
+        errors.append("Minimum speed must be between 2x and 9x")
+    if not 3.0 <= speed_max <= 10.0:
+        errors.append("Maximum speed must be between 3x and 10x")
+    if speed_min > speed_max:
+        errors.append("Minimum speed cannot exceed maximum speed")
+    if not 0 <= silence_start <= 5 or not 0 <= silence_end <= 5:
+        errors.append("Fade durations must be between 0 and 5 seconds")
+    if binaural_type not in {
+        "none", "delta", "theta", "alpha", "beta", "turbo_manipura"
+    }:
+        errors.append("Unknown binaural preset")
+    if lang_main not in {"auto", "uk", "ru", "en"}:
+        errors.append("Unknown synthesis language")
+    if not -30 <= binaural_volume <= -6:
+        errors.append("Binaural volume must be between -30 dB and -6 dB")
+    if not -30 <= music_volume <= 0 or not -30 <= voice_volume <= 0:
+        errors.append("Music and voice volumes must be between -30 dB and 0 dB")
+    if not save_encoded and not save_raw:
+        errors.append("At least one output format must be enabled")
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
 
 
 def cleanup_old_outputs(max_age_seconds: float = 3600):
@@ -199,6 +221,22 @@ async def generate(
     save_enc_flag = save_encoded.lower() in ("true", "1", "yes", "on")
     save_raw_flag = save_raw.lower() in ("true", "1", "yes", "on")
     tg_enabled_flag = tg_enabled.lower() in ("true", "1", "yes", "on")
+    validate_generation_params(
+        text_main=text_main,
+        layers=layers,
+        speed_min=speed_min,
+        speed_max=speed_max,
+        silence_start=silence_start,
+        silence_end=silence_end,
+        binaural_type=binaural_type,
+        binaural_volume=binaural_volume,
+        music_volume=music_volume,
+        voice_volume=voice_volume,
+        lang_main=lang_main,
+        save_encoded=save_enc_flag,
+        save_raw=save_raw_flag,
+    )
+    job_store.cleanup()
 
     # Determine target directories
     target_dir_encoded = OUTPUTS
@@ -212,7 +250,10 @@ async def generate(
             if save_raw_flag:
                 target_dir_raw = custom_path
         except Exception as e:
-            print(f"[EXPORT ERROR] Could not create custom directory {export_dir}, falling back to outputs/: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Output directory is not writable: {e}",
+            ) from e
 
     # Determine custom filename
     if export_filename and export_filename.strip():
@@ -229,8 +270,11 @@ async def generate(
     else:
         fname = generate_auto_filename(text_main, music_type)
 
+    output_path = None
+    output_raw_path = None
+
     # Encoded file path resolution
-    if export_filename and fname != job_id:
+    if save_enc_flag and export_filename and fname != job_id:
         candidate = target_dir_encoded / f"{fname}.wav"
         if candidate.exists():
             counter = 1
@@ -242,11 +286,11 @@ async def generate(
             output_path = str(candidate)
         else:
             output_path = str(candidate)
-    else:
+    elif save_enc_flag:
         output_path = str(target_dir_encoded / f"{fname}.wav")
 
     # Raw file path resolution
-    if export_filename and fname != job_id:
+    if save_raw_flag and export_filename and fname != job_id:
         candidate_raw = target_dir_raw / f"{fname}_raw.wav"
         if candidate_raw.exists():
             counter = 1
@@ -258,15 +302,14 @@ async def generate(
             output_raw_path = str(candidate_raw)
         else:
             output_raw_path = str(candidate_raw)
-    else:
+    elif save_raw_flag:
         output_raw_path = str(target_dir_raw / f"{fname}_raw.wav")
 
-    jobs[job_id] = {
-        "status": "processing",
-        "progress": 5,
-        "output_path": output_path,
-        "output_raw_path": output_raw_path
-    }
+    job_store.create(
+        job_id,
+        output_path=output_path,
+        output_raw_path=output_raw_path,
+    )
     voices = {"uk": voice_uk, "ru": voice_ru, "en": voice_en}
     notch_flag = music_notch_enabled.lower() in ("true", "on", "1", "yes")
     background_tasks.add_task(
@@ -284,8 +327,8 @@ async def generate(
         client_session_id,
         voice_volume,
         tg_enabled_flag,
-        tg_token.strip(),
-        tg_chat_id.strip(),
+        tg_token.strip() or load_telegram_config()["token"],
+        tg_chat_id.strip() or load_telegram_config()["chat_id"],
         save_enc_flag,
         save_raw_flag,
     )
@@ -293,15 +336,12 @@ async def generate(
 
 
 def add_job_log(job_id, msg):
-    if job_id in jobs:
-        if "logs" not in jobs[job_id]:
-            jobs[job_id]["logs"] = []
-        jobs[job_id]["logs"].append(msg)
-        try:
-            print(f"[{job_id}] {msg}")
-        except UnicodeEncodeError:
-            safe_msg = msg.encode('ascii', errors='backslashreplace').decode('ascii')
-            print(f"[{job_id}] {safe_msg}")
+    job_store.log(job_id, msg)
+    try:
+        print(f"[{job_id}] {msg}")
+    except UnicodeEncodeError:
+        safe_msg = msg.encode('ascii', errors='backslashreplace').decode('ascii')
+        print(f"[{job_id}] {safe_msg}")
 
 
 async def _run(
@@ -324,52 +364,85 @@ async def _run(
     save_raw_flag=False,
 ):
     try:
+        add_job_log(job_id, "Queued for generation...")
+        async with generation_slots:
+            job_store.raise_if_cancelled(job_id)
+            job_store.update(job_id, status="processing", progress=5)
+            await _process_job(
+                job_id, text_main, voices, lang_main,
+                layers, speed_min, speed_max,
+                silence_start, silence_end,
+                binaural_type, binaural_volume,
+                music_type, music_volume, music_notch_enabled,
+                out, out_raw, client_session_id, voice_volume,
+                tg_enabled, tg_token, tg_chat_id,
+                save_enc_flag, save_raw_flag,
+            )
+    except GenerationCancelled:
+        add_job_log(job_id, "Generation cancelled.")
+        job_store.update(job_id, status="cancelled", progress=0)
+        for path in (out, out_raw):
+            if path:
+                Path(path).unlink(missing_ok=True)
+    except Exception as exc:
+        add_job_log(job_id, f"Error: {exc}")
+        job_store.update(job_id, status="error", error=str(exc), progress=0)
+
+
+async def _process_job(
+    job_id,
+    text_main,
+    voices,
+    lang_main,
+    layers, speed_min, speed_max,
+    silence_start, silence_end,
+    binaural_type, binaural_volume,
+    music_type, music_volume,
+    music_notch_enabled,
+    out, out_raw,
+    client_session_id,
+    voice_volume,
+    tg_enabled,
+    tg_token,
+    tg_chat_id,
+    save_enc_flag,
+    save_raw_flag,
+):
         add_job_log(job_id, "Initializing generation session...")
         sr = TARGET_SR
-        jobs[job_id]["progress"] = 8
+        job_store.update(job_id, progress=8)
 
         # ── Main text TTS (will be multi-layer encoded) ────────────
         if not text_main:
             raise ValueError("Affirmation text cannot be empty")
 
-        # Check cache
-        cache_hit = False
-        global tts_cache
-        if (
-            tts_cache.get("client_session_id") == client_session_id
-            and tts_cache.get("text_main") == text_main
-            and tts_cache.get("voices") == voices
-            and tts_cache.get("lang_main") == lang_main
-            and tts_cache.get("audio") is not None
-        ):
-            cache_hit = True
-
-        if cache_hit:
+        cache_key = (
+            client_session_id,
+            text_main,
+            tuple(sorted(voices.items())),
+            lang_main,
+        )
+        cached = tts_cache.get(cache_key)
+        if cached:
             add_job_log(job_id, "Using cached TTS voice from previous generation...")
-            main_audio = tts_cache["audio"].copy()
-            sr = tts_cache["sr"]
+            main_audio, sr = cached
         else:
             add_job_log(job_id, "Synthesizing speech via Neural TTS...")
             main_audio, sr = await generate_tts_multilang(text_main, voices, lang_main)
             add_job_log(job_id, "Neural TTS synthesis completed successfully.")
             if client_session_id:
-                tts_cache = {
-                    "client_session_id": client_session_id,
-                    "text_main": text_main,
-                    "voices": voices.copy(),
-                    "lang_main": lang_main,
-                    "audio": main_audio.copy(),
-                    "sr": sr
-                }
-        jobs[job_id]["progress"] = 25
+                main_audio.setflags(write=False)
+                tts_cache.put(cache_key, (main_audio, sr))
+        job_store.raise_if_cancelled(job_id)
+        job_store.update(job_id, progress=25)
 
         def cb(p):
-            jobs[job_id]["progress"] = p
+            job_store.update(job_id, progress=p)
 
         def log_cb(msg):
             add_job_log(job_id, msg)
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         add_job_log(job_id, "Starting mixdown and encoding...")
         await loop.run_in_executor(
             None,
@@ -384,18 +457,18 @@ async def _run(
             cb,
             log_cb,
             voice_volume,
+            lambda: job_store.raise_if_cancelled(job_id),
         )
 
-        jobs[job_id].update({"status": "done", "progress": 100})
+        job_store.update(job_id, status="done", progress=100)
         add_job_log(job_id, "Generation session completed successfully.")
 
         # Telegram upload
         if tg_enabled and tg_token and tg_chat_id:
-            import os
             add_job_log(job_id, "Uploading generated files to Telegram...")
             
             # Encoded file
-            if save_enc_flag and os.path.exists(out):
+            if save_enc_flag and out and os.path.exists(out):
                 add_job_log(job_id, f"Sending Encoded WAV to Telegram bot ({os.path.basename(out)})...")
                 res = await loop.run_in_executor(
                     None,
@@ -427,25 +500,30 @@ async def _run(
                 else:
                     err_msg = res.get("error") or res.get("description") or "Unknown error"
                     add_job_log(job_id, f"Telegram upload failed: {err_msg}")
-    except Exception as exc:
-        add_job_log(job_id, f"Error: {exc}")
-        jobs[job_id].update({"status": "error", "error": str(exc), "progress": 0})
-
-
 @app.get("/status/{job_id}")
 async def status(job_id: str):
-    return jobs.get(job_id, {"status": "not_found"})
+    return job_store.get(job_id) or {"status": "not_found"}
 
 
 @app.get("/jobs")
 async def get_all_jobs():
-    return jobs
+    return job_store.all()
+
+
+@app.post("/jobs/{job_id}/cancel")
+async def cancel_job(job_id: str):
+    if job_store.cancel(job_id):
+        return {"status": "cancelling"}
+    job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    raise HTTPException(status_code=409, detail=f"Job is already {job['status']}")
 
 
 @app.get("/download/{job_id}")
 async def download(job_id: str):
-    job = jobs.get(job_id)
-    if job and "output_path" in job:
+    job = job_store.get(job_id)
+    if job and job.get("output_path"):
         path = Path(job["output_path"])
         if path.exists():
             return FileResponse(
@@ -461,8 +539,8 @@ async def download(job_id: str):
 
 @app.get("/download_raw/{job_id}")
 async def download_raw(job_id: str):
-    job = jobs.get(job_id)
-    if job and "output_raw_path" in job:
+    job = job_store.get(job_id)
+    if job and job.get("output_raw_path"):
         path = Path(job["output_raw_path"])
         if path.exists():
             return FileResponse(
@@ -489,6 +567,20 @@ class GUI_API:
         except Exception as e:
             print(f"[GUI API ERROR] choose_folder error: {e}")
         return None
+
+    def open_external(self, url: str) -> bool:
+        allowed = {
+            "https://t.me/BotFather",
+            "https://t.me/userinfobot",
+        }
+        if url not in allowed:
+            return False
+        try:
+            import webbrowser
+            return bool(webbrowser.open(url))
+        except Exception as e:
+            print(f"[GUI API ERROR] open_external error: {e}")
+            return False
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import librosa
 import soundfile as sf
 import miniaudio
 from typing import Callable
-from scipy.signal import lfilter, butter, iirnotch
+from scipy.signal import butter, iirnotch, lfilter, sosfilt, sosfiltfilt
 
 # ─── Music library directory ──────────────────────────────────────────────────
 MUSIC_DIR = os.path.join(os.path.dirname(__file__), "music")
@@ -31,6 +31,11 @@ def get_music_tracks() -> list[dict]:
 # ─── Memory-safe chunked time-stretch ────────────────────────────────────────
 
 CHUNK_SEC = 300   # max seconds per STFT call (~210 MB RAM per chunk, avoids clicks for typical lengths)
+CHUNK_OVERLAP_SEC = 0.25
+VOICE_BAND_LIMIT_HZ = 3500.0
+CARRIER_MIN_HZ = 3000.0
+CARRIER_MAX_HZ = 17500.0
+OUTPUT_CEILING = 10 ** (-1.0 / 20.0)
 
 
 def _trim_silence(audio: np.ndarray, threshold: float = 0.01) -> np.ndarray:
@@ -47,17 +52,46 @@ def _trim_silence(audio: np.ndarray, threshold: float = 0.01) -> np.ndarray:
 
 
 def _stretch_chunked(audio: np.ndarray, rate: float, sr: int) -> np.ndarray:
-    """Memory-safe wrapper around librosa time_stretch (chunked)."""
+    """Memory-safe time stretch with overlap/crossfade at chunk boundaries."""
     chunk = CHUNK_SEC * sr
     if len(audio) <= chunk:
         return librosa.effects.time_stretch(audio, rate=rate)
+    overlap = max(1, int(CHUNK_OVERLAP_SEC * sr))
     pieces = []
-    for start in range(0, len(audio), chunk):
+    for start in range(0, len(audio), chunk - overlap):
         end = min(start + chunk, len(audio))
-        pieces.append(
-            librosa.effects.time_stretch(audio[start:end], rate=rate)
-        )
+        stretched = librosa.effects.time_stretch(audio[start:end], rate=rate)
+        if not pieces:
+            pieces.append(stretched)
+        else:
+            crossfade = min(
+                max(1, int(overlap / rate)),
+                len(pieces[-1]),
+                len(stretched),
+            )
+            fade_out = np.linspace(1.0, 0.0, crossfade, dtype=np.float32)
+            fade_in = 1.0 - fade_out
+            pieces[-1][-crossfade:] = (
+                pieces[-1][-crossfade:] * fade_out
+                + stretched[:crossfade] * fade_in
+            )
+            pieces.append(stretched[crossfade:])
+        if end == len(audio):
+            break
     return np.concatenate(pieces)
+
+
+def _bandlimit_voice(audio: np.ndarray, sr: int) -> np.ndarray:
+    """Limit the AM envelope so carrier sidebands remain below Nyquist."""
+    cutoff = min(VOICE_BAND_LIMIT_HZ, sr * 0.5 - CARRIER_MAX_HZ - 500.0)
+    if cutoff <= 0:
+        raise ValueError("Sample rate is too low for the configured carrier grid")
+    sos = butter(6, cutoff / (0.5 * sr), btype="low", output="sos")
+    audio = audio.astype(np.float32, copy=False)
+    try:
+        return sosfiltfilt(sos, audio).astype(np.float32)
+    except ValueError:
+        return sosfilt(sos, audio).astype(np.float32)
 
 
 # ─── Single-stream (plain TTS, conscious hearing) ────────────────────────────
@@ -93,13 +127,18 @@ def encode_multilayer(
     p_start: int = 40,
     p_end: int = 90,
     log_cb: Callable[[str], None] = None,
+    cancel_cb: Callable[[], None] | None = None,
 ) -> np.ndarray:
     """
-    Full-spectrum AM modulation with Instant Entry guarantee and stereo symmetry.
+    Band-limited AM modulation with deterministic variation and stereo symmetry.
     """
     # 1. Prepare source
     audio = _trim_silence(audio.astype(np.float32), threshold=0.01)
+    audio = _bandlimit_voice(audio, sr)
     target_samples = len(audio)
+    if target_samples == 0:
+        raise ValueError("Cannot encode empty audio")
+    rng = np.random.default_rng()
     
     # Pre-calculate active indices to ensure "Instant Entry"
     # We look for indices where the signal is non-negligible
@@ -118,17 +157,21 @@ def encode_multilayer(
     n_right = n_layers - n_left
     
     if n_left > 1:
-        left_freqs = np.linspace(3000.0, 18000.0, n_left) + np.random.uniform(-150.0, 150.0, n_left)
-        left_speeds = np.linspace(speed_min, speed_max, n_left) + np.random.uniform(-0.05, 0.05, n_left)
+        left_freqs = np.linspace(CARRIER_MIN_HZ, CARRIER_MAX_HZ, n_left)
+        left_freqs += rng.uniform(-150.0, 150.0, n_left)
+        left_speeds = np.linspace(speed_min, speed_max, n_left)
+        left_speeds += rng.uniform(-0.05, 0.05, n_left)
     else:
-        left_freqs = np.array([3000.0])
+        left_freqs = np.array([CARRIER_MIN_HZ])
         left_speeds = np.array([speed_min])
         
     if n_right > 1:
-        right_freqs = np.linspace(3000.0, 18000.0, n_right) + np.random.uniform(-150.0, 150.0, n_right)
-        right_speeds = np.linspace(speed_min, speed_max, n_right) + np.random.uniform(-0.05, 0.05, n_right)
+        right_freqs = np.linspace(CARRIER_MIN_HZ, CARRIER_MAX_HZ, n_right)
+        right_freqs += rng.uniform(-150.0, 150.0, n_right)
+        right_speeds = np.linspace(speed_min, speed_max, n_right)
+        right_speeds += rng.uniform(-0.05, 0.05, n_right)
     else:
-        right_freqs = np.array([3000.0])
+        right_freqs = np.array([CARRIER_MIN_HZ])
         right_speeds = np.array([speed_min])
         
     # Ensure speeds do not drop below 1.0
@@ -153,11 +196,16 @@ def encode_multilayer(
         })
         
     if log_cb:
-        log_cb(f"Processing: {n_left} layers Left, {n_right} layers Right (range 3000 - 18000 Hz, step {15000 / max(1, n_left - 1):.1f} Hz)")
+        log_cb(
+            f"Processing: {n_left} layers Left, {n_right} layers Right "
+            f"(range {CARRIER_MIN_HZ:.0f} - {CARRIER_MAX_HZ:.0f} Hz)"
+        )
 
     # 3. Process each layer
     total_layers = len(layers_config)
     for idx, cfg in enumerate(layers_config):
+        if cancel_cb:
+            cancel_cb()
         cf = cfg['freq']
         sf_rate = cfg['speed']
         ch = cfg['channel']
@@ -167,11 +215,7 @@ def encode_multilayer(
         stretched = _stretch_chunked(audio, rate=float(sf_rate), sr=sr)
         n_stretched = len(stretched)
         
-        # B. Tiling with high reps
-        reps = int(np.ceil(target_samples / n_stretched)) + 2
-        tiled_full = np.tile(stretched, reps)
-        
-        # C. Start offsets (Instant Entry)
+        # B. Start offset (first left layer starts immediately).
         if offset_zero:
             off = 0
         else:
@@ -179,12 +223,17 @@ def encode_multilayer(
             valid_starts = valid_starts[valid_starts < n_stretched]
             if len(valid_starts) == 0:
                 valid_starts = np.array([0])
-            off = np.random.choice(valid_starts)
+            off = int(rng.choice(valid_starts))
         
-        # D. Slice and apply AM
-        chunk = tiled_full[off : off + target_samples].astype(np.float32)
+        # C. Repeat only to the required length without a large over-allocated tile.
+        source = (
+            np.concatenate((stretched[off:], stretched[:off]))
+            if off
+            else stretched
+        )
+        chunk = np.resize(source, target_samples).astype(np.float32, copy=False)
         
-        phase = np.random.uniform(0, 2 * np.pi)
+        phase = rng.uniform(0, 2 * np.pi)
         carrier = np.cos(2.0 * np.pi * cf * t + phase).astype(np.float32)
         
         layer_signal = chunk * carrier
@@ -197,7 +246,7 @@ def encode_multilayer(
         # E. Add to corresponding channel
         output[:, ch] += layer_signal
         
-        del stretched, tiled_full, chunk, carrier, layer_signal
+        del stretched, source, chunk, carrier, layer_signal
         gc.collect()
 
         if progress_cb:
@@ -271,9 +320,10 @@ def _get_music_audio(
         n_frames = len(music_data)
         if n_frames == 0:
             return np.zeros((length_samples, 2), dtype=np.float32)
-        reps = int(np.ceil(length_samples / n_frames))
-        tiled = np.tile(music_data, (reps, 1))
-        music_signal = tiled[:length_samples].copy()
+        music_signal = np.resize(music_data, (length_samples, 2)).astype(
+            np.float32,
+            copy=False,
+        )
         
         # Apply 3000 Hz low-pass filter (high cut) to protect the voice spectrum
         cutoff = 3000.0
@@ -381,7 +431,7 @@ def mix_final(
     speed_max: float,
     silence_start: float, # treat as fade in duration
     silence_end: float,   # treat as fade out duration
-    output_path: str,
+    output_path: str | None,
     output_raw_path: str | None = None,
     binaural_type: str = "none",
     binaural_volume: float = -12.0,
@@ -391,91 +441,86 @@ def mix_final(
     progress_cb: Callable[[int], None] = None,
     log_cb: Callable[[str], None] = None,
     voice_volume: float = 0.0,
+    cancel_cb: Callable[[], None] | None = None,
 ) -> None:
     """
     Build the WAV with actual fade in / fade out and stereo.
     """
-    if log_cb:
-        log_cb("Preparing multi-threaded AM encoding...")
-
-    if progress_cb:
-        progress_cb(15)
-
-    main_encoded = encode_multilayer(
-        main_audio, sr, n_layers, speed_min, speed_max,
-        progress_cb=progress_cb, p_start=25, p_end=90,
-        log_cb=log_cb
-    )
-    
-    # Scale voice volume before mixing
-    linear_voice_vol = 10 ** (voice_volume / 20.0)
-    main_encoded *= linear_voice_vol
-    
-    if log_cb:
-        log_cb("Multi-threaded AM encoding completed.")
-
-    if progress_cb:
-        progress_cb(95)
-
-    final = main_encoded.copy()
-    del main_encoded
-    gc.collect()
-    
-    if binaural_type != "none":
+    if output_path:
         if log_cb:
-            log_cb(f"Synthesizing binaural beat ({binaural_type})...")
-        binaural = generate_binaural_beat(binaural_type, len(final), sr, binaural_volume)
-        final += binaural
-        
-    if music_type != "none":
+            log_cb("Preparing multi-layer AM encoding...")
+
+        if progress_cb:
+            progress_cb(15)
+
+        main_encoded = encode_multilayer(
+            main_audio, sr, n_layers, speed_min, speed_max,
+            progress_cb=progress_cb, p_start=25, p_end=90,
+            log_cb=log_cb,
+            cancel_cb=cancel_cb,
+        )
+        main_encoded *= 10 ** (voice_volume / 20.0)
+        final = main_encoded.copy()
+        del main_encoded
+        gc.collect()
+
+        if binaural_type != "none":
+            if cancel_cb:
+                cancel_cb()
+            if log_cb:
+                log_cb(f"Synthesizing binaural beat ({binaural_type})...")
+            final += generate_binaural_beat(
+                binaural_type, len(final), sr, binaural_volume
+            )
+
+        if music_type != "none":
+            if cancel_cb:
+                cancel_cb()
+            if log_cb:
+                log_cb(f"Loading and processing background music ({music_type})...")
+            notch_freqs = None
+            if music_notch_enabled and binaural_type != "none":
+                if binaural_type == "turbo_manipura":
+                    notch_freqs = [
+                        [126.22, 330.0, 528.0],
+                        [129.22, 336.0, 538.0],
+                    ]
+                else:
+                    freqs = get_binaural_freqs(binaural_type)
+                    if freqs is not None:
+                        notch_freqs = [[freqs[0]], [freqs[1]]]
+                if notch_freqs is not None and log_cb:
+                    log_cb("Applying surgical Notch EQ to music...")
+            music = _get_music_audio(
+                music_type, len(final), sr, notch_freqs=notch_freqs
+            )
+            final += music * (10 ** (music_volume / 20.0))
+
+        if silence_start > 0:
+            fade_in_samples = min(int(silence_start * sr), len(final))
+            if fade_in_samples:
+                final[:fade_in_samples] *= np.linspace(
+                    0.0, 1.0, fade_in_samples
+                )[:, np.newaxis]
+
+        if silence_end > 0:
+            fade_out_samples = min(int(silence_end * sr), len(final))
+            if fade_out_samples:
+                final[-fade_out_samples:] *= np.linspace(
+                    1.0, 0.0, fade_out_samples
+                )[:, np.newaxis]
+
+        peak = np.max(np.abs(final))
+        if peak > 0:
+            final *= OUTPUT_CEILING / peak
+
         if log_cb:
-            log_cb(f"Loading and processing background music ({music_type})...")
-        notch_freqs = None
-        if music_notch_enabled and binaural_type != "none":
-            if binaural_type == "turbo_manipura":
-                # Sun (126.22 Hz), AMI (330.0 Hz), Solfeggio (528.0 Hz) and their binaural targets
-                notch_freqs = [[126.22, 330.0, 528.0], [129.22, 336.0, 538.0]]
-            else:
-                freqs = get_binaural_freqs(binaural_type)
-                if freqs is not None:
-                    f_left, f_right = freqs
-                    notch_freqs = [[f_left], [f_right]]
-            
-            if notch_freqs is not None and log_cb:
-                log_cb("Applying surgical Notch EQ to music...")
-        music = _get_music_audio(music_type, len(final), sr, notch_freqs=notch_freqs)
-        linear_vol = 10 ** (music_volume / 20.0)
-        final += music * linear_vol
-
-    # Apply fade in & fade out to mixed audio
-    if silence_start > 0:
-        fade_in_samples = int(silence_start * sr)
-        if fade_in_samples > 0 and len(final) >= fade_in_samples:
-            if log_cb:
-                log_cb(f"Applying smooth Fade In ({silence_start}s)...")
-            fade_in_curve = np.linspace(0.0, 1.0, fade_in_samples)[:, np.newaxis]
-            final[:fade_in_samples] *= fade_in_curve
-
-    if silence_end > 0:
-        fade_out_samples = int(silence_end * sr)
-        if fade_out_samples > 0 and len(final) >= fade_out_samples:
-            if log_cb:
-                log_cb(f"Applying smooth Fade Out ({silence_end}s)...")
-            fade_out_curve = np.linspace(1.0, 0.0, fade_out_samples)[:, np.newaxis]
-            final[-fade_out_samples:] *= fade_out_curve
-
-    if log_cb:
-        log_cb("Normalizing amplitude of mixed signal...")
-    # Peak normalize to exactly 0 dB (amplitude 1.0)
-    peak = np.max(np.abs(final))
-    if peak > 0:
-        final /= peak
-
-    if log_cb:
-        log_cb("Writing final WAV file...")
-    sf.write(output_path, final, sr, subtype="FLOAT")
+            log_cb("Writing 44.1 kHz / 16-bit encoded WAV file...")
+        sf.write(output_path, final, sr, subtype="PCM_16")
 
     if output_raw_path:
+        if cancel_cb:
+            cancel_cb()
         if log_cb:
             log_cb("Generating raw voice file...")
         raw_final = encode_single_stream(main_audio, speed=1.0, sr=sr)
@@ -492,8 +537,11 @@ def mix_final(
             if fade_out_samples > 0 and len(raw_final) >= fade_out_samples:
                 fade_out_curve = np.linspace(1.0, 0.0, fade_out_samples)[:, np.newaxis]
                 raw_final[-fade_out_samples:] *= fade_out_curve
-                
-        sf.write(output_raw_path, raw_final, sr, subtype="FLOAT")
+
+        raw_peak = np.max(np.abs(raw_final))
+        if raw_peak > 0:
+            raw_final *= OUTPUT_CEILING / raw_peak
+        sf.write(output_raw_path, raw_final, sr, subtype="PCM_16")
 
     if log_cb:
         log_cb("Generation finished successfully.")

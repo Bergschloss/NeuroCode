@@ -1,9 +1,12 @@
+import asyncio
 import re
 import numpy as np
 import edge_tts
 import miniaudio
 
 TARGET_SR = 44100
+TTS_TIMEOUT_SECONDS = 60
+TTS_ATTEMPTS = 2
 
 VOICES = {
     "uk": ["uk-UA-PolinaNeural", "uk-UA-OstapNeural"],
@@ -59,26 +62,36 @@ def split_segments(text: str) -> list[tuple[str, str]]:
 
 
 async def _tts_to_array(text: str, voice: str) -> np.ndarray:
-    print(f"[TTS DEBUG] Starting _tts_to_array for voice={voice}, text length={len(text)}...")
-    try:
+    async def collect_audio() -> bytes:
         communicate = edge_tts.Communicate(text, voice)
         chunks = []
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 chunks.append(chunk["data"])
-        print(f"[TTS DEBUG] Finished edge_tts stream, chunks received: {len(chunks)}")
-        mp3_bytes = b"".join(chunks)
-        decoded = miniaudio.decode(
-            mp3_bytes,
-            output_format=miniaudio.SampleFormat.FLOAT32,
-            nchannels=1,
-            sample_rate=TARGET_SR,
-        )
-        print(f"[TTS DEBUG] Miniaudio decoded.")
-        return np.frombuffer(decoded.samples, dtype=np.float32).copy()
-    except Exception as e:
-        print(f"[TTS ERROR] Exception in _tts_to_array: {e}")
-        raise e
+        if not chunks:
+            raise RuntimeError("TTS returned no audio")
+        return b"".join(chunks)
+
+    last_error = None
+    for attempt in range(1, TTS_ATTEMPTS + 1):
+        try:
+            mp3_bytes = await asyncio.wait_for(
+                collect_audio(),
+                timeout=TTS_TIMEOUT_SECONDS,
+            )
+            decoded = miniaudio.decode(
+                mp3_bytes,
+                output_format=miniaudio.SampleFormat.FLOAT32,
+                nchannels=1,
+                sample_rate=TARGET_SR,
+            )
+            return np.frombuffer(decoded.samples, dtype=np.float32).copy()
+        except Exception as exc:
+            last_error = exc
+            print(f"[TTS] Attempt {attempt}/{TTS_ATTEMPTS} failed: {exc}")
+            if attempt < TTS_ATTEMPTS:
+                await asyncio.sleep(0.75 * attempt)
+    raise RuntimeError(f"TTS failed after {TTS_ATTEMPTS} attempts: {last_error}") from last_error
 
 
 async def generate_tts_single(

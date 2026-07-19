@@ -13,10 +13,10 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 ## Key Features
 
 - **Neural TTS Engine**: Multi-language Text-to-Speech synthesis (English, Ukrainian, Russian) with automatic per-sentence language detection.
-- **Symmetrical AM Stereo Carriers**: Speech signals are modulated onto symmetrical high-frequency carriers starting at **3000 Hz** up to **18000 Hz** across both left and right channels to enforce bilateral brain hemisphere stimulation.
+- **Band-Limited AM Stereo Carriers**: Speech is low-pass filtered before modulation and placed on carriers from **3000 Hz** to **17500 Hz**, keeping AM sidebands below the 44.1 kHz Nyquist limit.
 - **Massive Multi-Layering**: Supports dense psychoacoustic stacking of up to 24 parallel voice layers (default 12) with randomized speed ($\pm 0.05\text{x}$) and frequency jitters ($\pm 150\text{ Hz}$) to eliminate phantom mono images and create a wide, diffuse subliminal field.
-- **Golden Speed Range**: Asynchronous layer speech stretching randomized between **2.0x** and **4.0x** — the optimal speed for subconscious processing and auditory comprehension.
-- **Instant Entry Technology**: The first left-channel carrier starts with a $0\text{-second}$ offset, ensuring signals enter the subconscious immediately, while the right channel is offset to prevent cross-channel correlation.
+- **Configurable Speed Range**: Asynchronous layer speech stretching can be randomized across a user-selected range.
+- **Zero-offset First Layer**: The first left-channel carrier starts at a $0\text{-second}$ offset, while other layers use offsets to reduce cross-channel correlation.
 - **Brainwave Entrainment (Binaural Beats)**: Generates precise binaural frequencies to stimulate targeted mental states:
   - **Delta (2 Hz)**: Deep sleep, physical repair, and restoration.
   - **Theta (4 Hz)**: Deep meditation, visualization, and subconscious openness.
@@ -24,7 +24,8 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
   - **Beta (15 Hz)**: Cognitive activity, alert processing, and problem-solving.
 - **Surgical Notch EQ**: A high-selectivity notch filter ($Q = 30$) carved exactly at the binaural carrier frequencies (e.g., $136.1\text{ Hz}$ and $140.1\text{ Hz}$) inside the background music, preventing the music from acoustically masking the therapeutic beat.
 - **Automated Audio Engineering**: Real-time automatic RMS volume normalization of background music tracks, smooth fade-in/fade-out transitions, and peak-limiting to prevent digital clipping.
-- **Composer-Grade Output**: Direct export to uncompressed **48 kHz / 16-bit / Stereo WAV** files.
+- **WAV Output**: Direct export to uncompressed **44.1 kHz / 16-bit / Stereo WAV** files.
+- **Controlled Processing Queue**: One DSP-heavy generation runs at a time; later jobs wait safely and can be cancelled.
 
 ---
 
@@ -70,22 +71,22 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 ```
 
 ### 1. Amplitude Modulation (AM) Subliminal Encoding
-Standard audio signals are easily captured by the conscious mind. By modulating the amplitude of high-frequency sine carriers (ranging from 3 kHz up to 18 kHz) with the speech signal, the verbal content is shifted into a frequency spectrum where it bypasses the conscious threshold of the human ear, yet remains fully decodable by the auditory cortex and the subconscious mind.
+The encoder low-pass filters speech to 3.5 kHz and modulates it onto sine carriers ranging from 3 kHz to 17.5 kHz. The band limit prevents upper AM sidebands from folding across the 22.05 kHz Nyquist boundary. This is an experimental signal-processing technique; the application does not claim that the resulting content bypasses conscious hearing or produces a specific neurological response.
 
 ### 2. Symmetrical Stereo Grid
-Instead of panning layers in an offset comb grid, both Left and Right channels contain matching carrier frequencies starting from 3000 Hz. This symmetry creates a cohesive, balanced soundstage, reinforcing bilateral integration in the brain hemispheres.
+Both left and right channels contain carrier grids from 3000 Hz to 17500 Hz. This produces a balanced stereo signal without making claims about hemispheric integration.
 
 ### 3. Golden Speed Stretches
-To increase the cognitive throughput to the subconscious, layers are accelerated between 2.0x and 4.0x. This range is high enough to compress information and bypass verbal resistance, while remaining fully intelligible to the subconscious processing centers of the brain.
+Layers can be accelerated at different rates to create a dense asynchronous texture. Faster speech is not guaranteed to remain intelligible or to affect subconscious processing.
 
 ### 4. Surgical Notch Filtering
-To combine subliminal voice carriers with background music without losing the binaural entrainment effect, the background music undergoes a sharp parametric notch cut at the exact carrier frequencies of the binaural wave (usually around $136.1\text{ Hz}$). This prevents acoustic masking and maintains the therapeutic beat's effectiveness.
+When enabled, the background music receives a narrow notch cut at the selected binaural carrier frequencies. This reduces competing energy at those frequencies but does not establish a therapeutic effect.
 
 ---
 
 ## Patent Foundations
 
-The DSP pipelines implemented in Neurocode Studio build upon established psychoacoustic and neuro-electrical stimulation methodologies. Key patent foundations referenced by this system include:
+The DSP pipeline is inspired by techniques described in the following historical patents. A patent describes an invention; it is not evidence of clinical efficacy:
 
 - **Amplitude Modulation (AM) Subliminal Encoding**:
   - **U.S. Patent No. 5,159,703** (*"Silent Subliminal Presentation System"*, Oliver M. Lowery, 1992 - Expired): Describes the conversion of standard audio to silent subliminal frequencies via high-frequency carrier wave modulation.
@@ -103,6 +104,8 @@ The DSP pipelines implemented in Neurocode Studio build upon established psychoa
 ```
 SubliminalGenerator/
 ├── app.py                     # FastAPI backend & webview window initializer
+├── job_state.py               # Bounded job registry, cancellation and TTS LRU cache
+├── telegram_client.py         # Telegram config and HTTP adapter
 ├── requirements.txt           # Python package dependencies
 ├── test_api_short.py          # Short API endpoint smoke tests
 ├── engine/

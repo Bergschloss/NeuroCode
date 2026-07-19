@@ -36,6 +36,7 @@
 })();
 
 let pollTimer = null;
+let currentJobId = null;
 const CPS = 14;
 const clientSessionId = Math.random().toString(36).substring(2, 15);
 
@@ -290,7 +291,7 @@ function renderActiveLoader(pct, stage) {
   
   const stageLabel = document.getElementById('loader-stage-label');
   if (stageLabel) {
-    stageLabel.textContent = `${stage.toUpperCase()} · 48 kHz / Stereo`;
+    stageLabel.textContent = `${stage.toUpperCase()} · 44.1 kHz / 16-bit / Stereo`;
   }
 }
 
@@ -382,7 +383,22 @@ async function generate() {
   fd.append('tg_chat_id',      document.getElementById('tg-chat-id').value.trim());
 
   try {
-    const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());
+    const response = await fetch('/generate', {method:'POST', body:fd});
+    const payload = await response.json();
+    if (!response.ok) {
+      const detail = Array.isArray(payload.detail)
+        ? payload.detail.join('\n')
+        : (payload.detail || `Request failed (${response.status})`);
+      throw new Error(detail);
+    }
+    const {job_id} = payload;
+    currentJobId = job_id;
+    const cancelBtn = document.getElementById('btn-cancel');
+    if (cancelBtn) {
+      cancelBtn.disabled = false;
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.display = 'inline-block';
+    }
     pollStatus(job_id);
   } catch(e) { showError('Error: '+e.message); resetBtn(); }
 }
@@ -440,7 +456,11 @@ function pollStatus(job_id) {
         }
       }
       
-      if (d.status === 'processing') {
+      if (d.status === 'queued') {
+        setProgress(0, 'Queued — waiting for the active generation...');
+      } else if (d.status === 'cancelling') {
+        setProgress(d.progress || 0, 'Cancelling safely...');
+      } else if (d.status === 'processing') {
         const p = d.progress || 5;
         const msg = p < 25 ? 'Generating TTS...'
           : p < 90 ? `AM encoding layers... ${p}%`
@@ -463,6 +483,10 @@ function pollStatus(job_id) {
       } else if (d.status === 'error') {
         clearInterval(pollTimer);
         showError('Error: ' + (d.error||'unknown'));
+        resetBtn();
+      } else if (d.status === 'cancelled') {
+        clearInterval(pollTimer);
+        showError('Generation cancelled.');
         resetBtn();
       }
     } catch {}
@@ -507,6 +531,7 @@ async function showDownload(job_id) {
         rawEl.style.display = 'none';
       }
     }
+
     
     const w = document.getElementById('success-wrap');
     if (w) {
@@ -531,6 +556,31 @@ function resetBtn() {
     btn.disabled = false;
     btn.innerHTML = '<span>Generate WAV</span>';
   }
+  const cancelBtn = document.getElementById('btn-cancel');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  currentJobId = null;
+}
+
+async function cancelGeneration() {
+  if (!currentJobId) return;
+  const btn = document.getElementById('btn-cancel');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Cancelling...';
+  }
+  try {
+    const response = await fetch(`/jobs/${currentJobId}/cancel`, {method: 'POST'});
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(payload.detail || 'Cancellation failed');
+    }
+  } catch (error) {
+    showError('Cancellation error: ' + error.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Cancel';
+    }
+  }
 }
 
 /* ===== Telegram Bot Configuration and Testing ===== */
@@ -543,7 +593,10 @@ async function loadTelegramConfig() {
       const chatIdEl = document.getElementById('tg-chat-id');
       
       if (enabledEl) enabledEl.checked = res.enabled || false;
-      if (tokenEl) tokenEl.value = res.token || '';
+      if (tokenEl) {
+        tokenEl.value = res.token || '';
+        tokenEl.placeholder = 'Enter Telegram Bot Token';
+      }
       if (chatIdEl) chatIdEl.value = res.chat_id || '';
       
       toggleTgFields();
@@ -551,10 +604,8 @@ async function loadTelegramConfig() {
   } catch (e) {
     console.warn('Could not load Telegram config from server:', e);
     const savedEnabled = localStorage.getItem('ncs_tg_enabled');
-    const savedToken = localStorage.getItem('ncs_tg_token');
     const savedChatId = localStorage.getItem('ncs_tg_chat_id');
     if (savedEnabled !== null) document.getElementById('tg-enabled').checked = (savedEnabled === 'true');
-    if (savedToken !== null) document.getElementById('tg-token').value = savedToken;
     if (savedChatId !== null) document.getElementById('tg-chat-id').value = savedChatId;
     toggleTgFields();
   }
@@ -566,7 +617,6 @@ function saveTelegramConfig() {
   const chat_id = document.getElementById('tg-chat-id').value.trim();
   
   localStorage.setItem('ncs_tg_enabled', enabled);
-  localStorage.setItem('ncs_tg_token', token);
   localStorage.setItem('ncs_tg_chat_id', chat_id);
   
   const fd = new FormData();
@@ -582,6 +632,17 @@ function toggleTgFields() {
   const block = document.getElementById('tg-fields-block');
   if (block) {
     block.style.display = enabled ? 'block' : 'none';
+  }
+}
+
+async function openTelegramHelper(handle) {
+  const allowed = new Set(['BotFather', 'userinfobot']);
+  if (!allowed.has(handle)) return;
+  const url = `https://t.me/${handle}`;
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.open_external) {
+    await window.pywebview.api.open_external(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
 

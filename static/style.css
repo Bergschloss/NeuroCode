@@ -680,6 +680,76 @@ input[type=range]::-moz-range-thumb{
   background: rgba(255,255,255,0.05);
 }
 
+.telegram-helper {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  margin-top: 8px;
+  padding: 5px 9px 5px 7px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: rgba(255,255,255,.018);
+  color: var(--ink-2);
+  font-family: var(--t-mono);
+  font-size: 9px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+
+.telegram-token-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--t-mono);
+}
+
+.telegram-fields-grid .field {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.telegram-fields-grid .field-label {
+  padding-top: 12px;
+}
+
+.telegram-helper:hover {
+  border-color: var(--ink);
+  background: rgba(255,255,255,.055);
+  color: var(--ink);
+}
+
+.telegram-helper:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.telegram-helper-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.055);
+}
+
+.telegram-helper-icon {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+.telegram-helper-arrow {
+  margin-left: 1px;
+  opacity: .55;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.telegram-helper:hover .telegram-helper-arrow {
+  opacity: 1;
+  transform: translate(1px, -1px);
+}
+
 /* System help blocks */
 .help-block {
   display: none;
@@ -865,4 +935,3 @@ input[type=text]{
 }
 input[type=text]:focus{border-color:var(--ink);background:#333333}
 input[type=text]::placeholder{color:var(--ink-4)}
-
