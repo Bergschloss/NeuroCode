@@ -5,8 +5,9 @@ import edge_tts
 import miniaudio
 
 TARGET_SR = 44100
-TTS_TIMEOUT_SECONDS = 60
-TTS_ATTEMPTS = 2
+TTS_TIMEOUT_SECONDS = 180
+TTS_ATTEMPTS = 5
+MAX_CHUNK_CHARS = 1200
 
 VOICES = {
     "uk": ["uk-UA-PolinaNeural", "uk-UA-OstapNeural"],
@@ -61,7 +62,45 @@ def split_segments(text: str) -> list[tuple[str, str]]:
     return [(lang, txt) for lang, txt in merged]
 
 
-async def _tts_to_array(text: str, voice: str) -> np.ndarray:
+def _split_text_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
+    """Split long text into manageable chunks at sentence boundaries for robust TTS synthesis."""
+    if len(text) <= max_chars:
+        return [text]
+
+    parts = re.split(r'(?<=[.!?\n])\s+|\n+', text.strip())
+    chunks = []
+    current_chunk = ""
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if len(current_chunk) + len(part) + 1 <= max_chars:
+            current_chunk = f"{current_chunk} {part}".strip()
+        else:
+            if current_chunk:
+                chunks.append(current_chunk)
+            if len(part) > max_chars:
+                words = part.split(' ')
+                sub_chunk = ""
+                for w in words:
+                    if len(sub_chunk) + len(w) + 1 <= max_chars:
+                        sub_chunk = f"{sub_chunk} {w}".strip()
+                    else:
+                        if sub_chunk:
+                            chunks.append(sub_chunk)
+                        sub_chunk = w
+                if sub_chunk:
+                    current_chunk = sub_chunk
+                else:
+                    current_chunk = ""
+            else:
+                current_chunk = part
+    if current_chunk:
+        chunks.append(current_chunk)
+    return chunks or [text]
+
+
+async def _tts_single_chunk_to_array(text: str, voice: str) -> np.ndarray:
     async def collect_audio() -> bytes:
         communicate = edge_tts.Communicate(text, voice)
         chunks = []
@@ -69,7 +108,7 @@ async def _tts_to_array(text: str, voice: str) -> np.ndarray:
             if chunk["type"] == "audio":
                 chunks.append(chunk["data"])
         if not chunks:
-            raise RuntimeError("TTS returned no audio")
+            raise RuntimeError("TTS returned no audio data")
         return b"".join(chunks)
 
     last_error = None
@@ -88,10 +127,22 @@ async def _tts_to_array(text: str, voice: str) -> np.ndarray:
             return np.frombuffer(decoded.samples, dtype=np.float32).copy()
         except Exception as exc:
             last_error = exc
-            print(f"[TTS] Attempt {attempt}/{TTS_ATTEMPTS} failed: {exc}")
+            print(f"[TTS] Attempt {attempt}/{TTS_ATTEMPTS} failed for voice {voice}: {exc}")
             if attempt < TTS_ATTEMPTS:
-                await asyncio.sleep(0.75 * attempt)
+                await asyncio.sleep(1.0 * attempt)
     raise RuntimeError(f"TTS failed after {TTS_ATTEMPTS} attempts: {last_error}") from last_error
+
+
+async def _tts_to_array(text: str, voice: str) -> np.ndarray:
+    chunks = _split_text_into_chunks(text)
+    if len(chunks) == 1:
+        return await _tts_single_chunk_to_array(chunks[0], voice)
+
+    audio_arrays = []
+    for chunk in chunks:
+        arr = await _tts_single_chunk_to_array(chunk, voice)
+        audio_arrays.append(arr)
+    return np.concatenate(audio_arrays) if audio_arrays else np.zeros(TARGET_SR, dtype=np.float32)
 
 
 async def generate_tts_single(
