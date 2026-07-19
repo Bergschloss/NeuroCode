@@ -5,6 +5,15 @@
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
+@keyframes tgPulseGlide {
+  0% { left: 0%; width: 25%; }
+  50% { left: 45%; width: 45%; }
+  100% { left: 75%; width: 25%; }
+}
+.tg-upload-animated-bar {
+  animation: tgPulseGlide 1.6s infinite ease-in-out;
+}
+
 :root{
   --bg:#222222;
   --ink:#fff;

@@ -353,6 +353,8 @@ async function generate() {
   document.getElementById('prog-wrap').style.display = 'block';
   const successWrap = document.getElementById('success-wrap');
   if (successWrap) successWrap.style.display = 'none';
+  const tgWrap = document.getElementById('tg-upload-wrap');
+  if (tgWrap) tgWrap.style.display = 'none';
   document.getElementById('err-txt').style.display = 'none';
   setProgress(5, 'Sending request...');
 
@@ -454,6 +456,7 @@ function pollStatus(job_id) {
         if (ticker) {
           ticker.textContent = latestLog;
         }
+        updateTelegramUploadProgress(d.logs);
       }
       
       if (d.status === 'queued') {
@@ -676,6 +679,56 @@ async function testTelegramConnection() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Test Send';
+  }
+}
+
+function updateTelegramUploadProgress(logs) {
+  if (!logs || logs.length === 0) return;
+  
+  const tgWrap = document.getElementById('tg-upload-wrap');
+  const tgStatusText = document.getElementById('tg-upload-status-text');
+  const tgBadge = document.getElementById('tg-upload-badge');
+  const tgFill = document.getElementById('tg-upload-fill');
+  
+  if (!tgWrap || !tgStatusText || !tgBadge || !tgFill) return;
+
+  const tgLogs = logs.filter(l => l.includes('Telegram') || l.includes('Sending Encoded WAV') || l.includes('Sending Raw Voice'));
+  if (tgLogs.length === 0) return;
+
+  tgWrap.style.display = 'block';
+  const latest = tgLogs[tgLogs.length - 1];
+
+  if (latest.includes('successfully sent') || latest.includes('Sent to Telegram') || latest.includes('successfully sent to Telegram')) {
+    tgStatusText.textContent = '✓ Audio delivered to Telegram Bot!';
+    tgBadge.textContent = 'SENT';
+    tgBadge.style.background = 'rgba(0, 204, 136, 0.15)';
+    tgBadge.style.color = '#00cc88';
+    tgWrap.style.borderColor = 'rgba(0, 204, 136, 0.25)';
+    tgWrap.style.background = 'rgba(0, 204, 136, 0.04)';
+    tgFill.classList.remove('tg-upload-animated-bar');
+    tgFill.style.width = '100%';
+    tgFill.style.background = '#00cc88';
+  } else if (latest.includes('failed') || latest.includes('Error')) {
+    tgStatusText.textContent = latest;
+    tgBadge.textContent = 'ERROR';
+    tgBadge.style.background = 'rgba(255, 68, 68, 0.15)';
+    tgBadge.style.color = '#ff4444';
+    tgWrap.style.borderColor = 'rgba(255, 68, 68, 0.25)';
+    tgWrap.style.background = 'rgba(255, 68, 68, 0.04)';
+    tgFill.classList.remove('tg-upload-animated-bar');
+    tgFill.style.width = '100%';
+    tgFill.style.background = '#ff4444';
+  } else {
+    tgStatusText.textContent = latest;
+    tgBadge.textContent = 'UPLOADING';
+    tgBadge.style.background = 'rgba(0, 136, 204, 0.15)';
+    tgBadge.style.color = '#0088cc';
+    tgWrap.style.borderColor = 'rgba(0, 136, 204, 0.25)';
+    tgWrap.style.background = 'rgba(0, 136, 204, 0.04)';
+    if (!tgFill.classList.contains('tg-upload-animated-bar')) {
+      tgFill.classList.add('tg-upload-animated-bar');
+    }
+    tgFill.style.background = '#0088cc';
   }
 }
 
