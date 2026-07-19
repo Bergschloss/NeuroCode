@@ -20,3 +20,5 @@ none
 *.token
 *secret*
 credentials*.json
+telegram_config.json
+

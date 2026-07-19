@@ -368,6 +368,45 @@
     </div>
   </section>
 
+  <!-- SECTION 05 — TELEGRAM EXPORT -->
+  <section class="section">
+    <header class="section-head">
+      <div class="section-title">Telegram Bot Integration</div>
+      <div class="section-meta">Auto-Upload & Alerts</div>
+    </header>
+
+    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+      <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
+        <input type="checkbox" id="tg-enabled" style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;" onchange="toggleTgFields()"/>
+        <span>Enable Telegram Upload on Completion</span>
+      </label>
+    </div>
+
+    <div id="tg-fields-block" style="display: none; transition: opacity 0.3s ease;">
+      <div class="grid-two-cols">
+        <div class="field">
+          <div class="field-label">Bot Token</div>
+          <div class="field-body">
+            <input type="password" id="tg-token" placeholder="Enter Telegram Bot Token" style="font-family: monospace;"/>
+            <div class="help-block">HTTP API Token from @BotFather (e.g. 123456789:ABCDefGh...).</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Chat ID / User ID</div>
+          <div class="field-body">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="tg-chat-id" placeholder="Enter Telegram Chat ID" style="flex: 1; font-family: monospace;"/>
+              <button class="loader-settings-btn" id="btn-tg-test" style="height: 38px; padding: 0 16px; margin: 0; white-space: nowrap;" onclick="testTelegramConnection()">Test Send</button>
+            </div>
+            <div class="help-block">Your personal chat ID (e.g. 8988761865). Use @userinfobot to find it.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
   <!-- ACTION -->
   <div class="action">
     <div class="action-meta">

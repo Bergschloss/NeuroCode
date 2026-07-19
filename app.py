@@ -41,6 +41,83 @@ def generate_auto_filename(text: str, music_type: str) -> str:
 
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
+import json
+
+def send_telegram_document(token: str, chat_id: str, file_path: str, caption: str = "") -> dict:
+    import requests
+    import os
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    if not os.path.exists(file_path):
+        return {"ok": False, "error": f"File not found: {file_path}"}
+    
+    file_size = os.path.getsize(file_path)
+    if file_size > 50 * 1024 * 1024:
+        return {
+            "ok": False,
+            "error": f"File size ({file_size / 1024 / 1024:.1f} MB) exceeds Telegram bot upload limit of 50 MB."
+        }
+        
+    try:
+        with open(file_path, 'rb') as f:
+            files = {'document': (os.path.basename(file_path), f)}
+            data = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'}
+            response = requests.post(url, files=files, data=data, timeout=120)
+            return response.json()
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+TELEGRAM_CONFIG_FILE = Path("telegram_config.json")
+
+@app.get("/telegram_config")
+async def get_telegram_config():
+    if TELEGRAM_CONFIG_FILE.exists():
+        try:
+            with open(TELEGRAM_CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[TG CONFIG ERROR] Read failed: {e}")
+    return {"enabled": False, "token": "", "chat_id": ""}
+
+@app.post("/telegram_config")
+async def save_telegram_config(
+    enabled: str = Form("false"),
+    token: str = Form(""),
+    chat_id: str = Form(""),
+):
+    enabled_bool = enabled.lower() in ("true", "1", "yes", "on")
+    config = {
+        "enabled": enabled_bool,
+        "token": token.strip(),
+        "chat_id": chat_id.strip()
+    }
+    try:
+        with open(TELEGRAM_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save telegram config: {e}")
+
+@app.post("/telegram_test")
+async def test_telegram_config(
+    token: str = Form(...),
+    chat_id: str = Form(...),
+):
+    import requests
+    url = f"https://api.telegram.org/bot{token.strip()}/sendMessage"
+    try:
+        response = requests.post(url, data={
+            "chat_id": chat_id.strip(),
+            "text": "⚡️ *Neurocode Studio*\n\nTelegram Bot connection test successful!\nYour bot is ready to receive generated audio files.",
+            "parse_mode": "Markdown"
+        }, timeout=10)
+        res = response.json()
+        if res.get("ok"):
+            return {"status": "success"}
+        else:
+            return {"status": "error", "error": res.get("description", "Unknown Telegram API error")}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
 jobs: dict[str, dict] = {}
 tts_cache: dict = {}
 
@@ -109,6 +186,9 @@ async def generate(
     save_encoded: str = Form("true"),
     save_raw: str = Form("false"),
     voice_volume: float = Form(0.0),
+    tg_enabled: str = Form("false"),
+    tg_token: str = Form(""),
+    tg_chat_id: str = Form(""),
 ):
     if not export_dir or not export_dir.strip():
         raise HTTPException(status_code=400, detail="Output directory is required")
@@ -118,6 +198,7 @@ async def generate(
 
     save_enc_flag = save_encoded.lower() in ("true", "1", "yes", "on")
     save_raw_flag = save_raw.lower() in ("true", "1", "yes", "on")
+    tg_enabled_flag = tg_enabled.lower() in ("true", "1", "yes", "on")
 
     # Determine target directories
     target_dir_encoded = OUTPUTS
@@ -202,6 +283,11 @@ async def generate(
         output_path, output_raw_path,
         client_session_id,
         voice_volume,
+        tg_enabled_flag,
+        tg_token.strip(),
+        tg_chat_id.strip(),
+        save_enc_flag,
+        save_raw_flag,
     )
     return {"job_id": job_id}
 
@@ -231,6 +317,11 @@ async def _run(
     out, out_raw,
     client_session_id=None,
     voice_volume=0.0,
+    tg_enabled=False,
+    tg_token="",
+    tg_chat_id="",
+    save_enc_flag=True,
+    save_raw_flag=False,
 ):
     try:
         add_job_log(job_id, "Initializing generation session...")
@@ -297,6 +388,45 @@ async def _run(
 
         jobs[job_id].update({"status": "done", "progress": 100})
         add_job_log(job_id, "Generation session completed successfully.")
+
+        # Telegram upload
+        if tg_enabled and tg_token and tg_chat_id:
+            import os
+            add_job_log(job_id, "Uploading generated files to Telegram...")
+            
+            # Encoded file
+            if save_enc_flag and os.path.exists(out):
+                add_job_log(job_id, f"Sending Encoded WAV to Telegram bot ({os.path.basename(out)})...")
+                res = await loop.run_in_executor(
+                    None,
+                    send_telegram_document,
+                    tg_token,
+                    tg_chat_id,
+                    out,
+                    f"⚡️ *Neurocode Studio* - Encoded WAV\n\n*Affirmation:* {text_main[:120]}...\n*Preset:* {binaural_type}"
+                )
+                if res.get("ok"):
+                    add_job_log(job_id, "Encoded WAV successfully sent to Telegram!")
+                else:
+                    err_msg = res.get("error") or res.get("description") or "Unknown error"
+                    add_job_log(job_id, f"Telegram upload failed: {err_msg}")
+                    
+            # Raw file
+            if save_raw_flag and out_raw and os.path.exists(out_raw):
+                add_job_log(job_id, f"Sending Raw Voice to Telegram bot ({os.path.basename(out_raw)})...")
+                res = await loop.run_in_executor(
+                    None,
+                    send_telegram_document,
+                    tg_token,
+                    tg_chat_id,
+                    out_raw,
+                    f"⚡️ *Neurocode Studio* - Raw Voice\n\n*Affirmation:* {text_main[:120]}..."
+                )
+                if res.get("ok"):
+                    add_job_log(job_id, "Raw Voice successfully sent to Telegram!")
+                else:
+                    err_msg = res.get("error") or res.get("description") or "Unknown error"
+                    add_job_log(job_id, f"Telegram upload failed: {err_msg}")
     except Exception as exc:
         add_job_log(job_id, f"Error: {exc}")
         jobs[job_id].update({"status": "error", "error": str(exc), "progress": 0})

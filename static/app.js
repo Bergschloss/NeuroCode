@@ -221,6 +221,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const tgEnabled = document.getElementById('tg-enabled');
+  if (tgEnabled) {
+    tgEnabled.addEventListener('change', () => {
+      toggleTgFields();
+      saveTelegramConfig();
+    });
+  }
+  const tgToken = document.getElementById('tg-token');
+  if (tgToken) {
+    tgToken.addEventListener('input', saveTelegramConfig);
+  }
+  const tgChatId = document.getElementById('tg-chat-id');
+  if (tgChatId) {
+    tgChatId.addEventListener('input', saveTelegramConfig);
+  }
+
+  loadTelegramConfig();
   updateLoaderVisibility();
   renderActiveLoader(0, 'STANDBY');
 
@@ -360,6 +377,9 @@ async function generate() {
   fd.append('export_dir',      exportDir);
   fd.append('save_encoded',    autosaveEncoded ? 'true' : 'false');
   fd.append('save_raw',        autosaveRaw ? 'true' : 'false');
+  fd.append('tg_enabled',      document.getElementById('tg-enabled').checked ? 'true' : 'false');
+  fd.append('tg_token',        document.getElementById('tg-token').value.trim());
+  fd.append('tg_chat_id',      document.getElementById('tg-chat-id').value.trim());
 
   try {
     const {job_id} = await fetch('/generate',{method:'POST',body:fd}).then(r=>r.json());
@@ -510,6 +530,91 @@ function resetBtn() {
   if (btn) {
     btn.disabled = false;
     btn.innerHTML = '<span>Generate WAV</span>';
+  }
+}
+
+/* ===== Telegram Bot Configuration and Testing ===== */
+async function loadTelegramConfig() {
+  try {
+    const res = await fetch('/telegram_config').then(r => r.json());
+    if (res) {
+      const enabledEl = document.getElementById('tg-enabled');
+      const tokenEl = document.getElementById('tg-token');
+      const chatIdEl = document.getElementById('tg-chat-id');
+      
+      if (enabledEl) enabledEl.checked = res.enabled || false;
+      if (tokenEl) tokenEl.value = res.token || '';
+      if (chatIdEl) chatIdEl.value = res.chat_id || '';
+      
+      toggleTgFields();
+    }
+  } catch (e) {
+    console.warn('Could not load Telegram config from server:', e);
+    const savedEnabled = localStorage.getItem('ncs_tg_enabled');
+    const savedToken = localStorage.getItem('ncs_tg_token');
+    const savedChatId = localStorage.getItem('ncs_tg_chat_id');
+    if (savedEnabled !== null) document.getElementById('tg-enabled').checked = (savedEnabled === 'true');
+    if (savedToken !== null) document.getElementById('tg-token').value = savedToken;
+    if (savedChatId !== null) document.getElementById('tg-chat-id').value = savedChatId;
+    toggleTgFields();
+  }
+}
+
+function saveTelegramConfig() {
+  const enabled = document.getElementById('tg-enabled').checked;
+  const token = document.getElementById('tg-token').value.trim();
+  const chat_id = document.getElementById('tg-chat-id').value.trim();
+  
+  localStorage.setItem('ncs_tg_enabled', enabled);
+  localStorage.setItem('ncs_tg_token', token);
+  localStorage.setItem('ncs_tg_chat_id', chat_id);
+  
+  const fd = new FormData();
+  fd.append('enabled', enabled ? 'true' : 'false');
+  fd.append('token', token);
+  fd.append('chat_id', chat_id);
+  
+  fetch('/telegram_config', { method: 'POST', body: fd }).catch(err => console.warn("Failed to persist TG config:", err));
+}
+
+function toggleTgFields() {
+  const enabled = document.getElementById('tg-enabled').checked;
+  const block = document.getElementById('tg-fields-block');
+  if (block) {
+    block.style.display = enabled ? 'block' : 'none';
+  }
+}
+
+async function testTelegramConnection() {
+  const btn = document.getElementById('btn-tg-test');
+  const token = document.getElementById('tg-token').value.trim();
+  const chat_id = document.getElementById('tg-chat-id').value.trim();
+  
+  if (!token || !chat_id) {
+    alert('Please enter both Bot Token and Chat ID to run a test.');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  
+  const fd = new FormData();
+  fd.append('token', token);
+  fd.append('chat_id', chat_id);
+  
+  try {
+    const res = await fetch('/telegram_test', { method: 'POST', body: fd }).then(r => r.json());
+    if (res.status === 'success') {
+      alert('Success! A test message was sent to your Telegram chat.');
+      saveTelegramConfig();
+    } else {
+      alert('Telegram Test Failed:\n' + (res.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Request failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Test Send';
   }
 }
 
