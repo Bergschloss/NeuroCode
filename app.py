@@ -116,8 +116,6 @@ def validate_generation_params(
     errors = []
     if not text_main.strip():
         errors.append("Affirmation text cannot be empty")
-    if len(text_main) > 10_000:
-        errors.append("Affirmation text cannot exceed 10,000 characters")
     if layers < 4 or layers > 32 or layers % 2:
         errors.append("Layers must be an even number from 4 to 32")
     if not 2.0 <= speed_min <= 9.0:
