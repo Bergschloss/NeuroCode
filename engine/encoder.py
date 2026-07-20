@@ -82,16 +82,8 @@ def _stretch_chunked(audio: np.ndarray, rate: float, sr: int) -> np.ndarray:
 
 
 def _bandlimit_voice(audio: np.ndarray, sr: int) -> np.ndarray:
-    """Limit the AM envelope so carrier sidebands remain below Nyquist."""
-    cutoff = min(VOICE_BAND_LIMIT_HZ, sr * 0.5 - CARRIER_MAX_HZ - 500.0)
-    if cutoff <= 0:
-        raise ValueError("Sample rate is too low for the configured carrier grid")
-    sos = butter(6, cutoff / (0.5 * sr), btype="low", output="sos")
-    audio = audio.astype(np.float32, copy=False)
-    try:
-        return sosfiltfilt(sos, audio).astype(np.float32)
-    except ValueError:
-        return sosfilt(sos, audio).astype(np.float32)
+    """Return raw voice signal without artificially chopping high vocal formants."""
+    return audio.astype(np.float32, copy=False)
 
 
 # ─── Single-stream (plain TTS, conscious hearing) ────────────────────────────

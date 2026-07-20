@@ -281,9 +281,9 @@
       <div class="field-label">Voices Volume</div>
       <div class="field-body">
         <div class="slider-block">
-          <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-voice-vol">-4dB</span></div>
+          <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-voice-vol">0dB</span></div>
           <div class="slider-track">
-            <input type="range" id="voice-volume" min="-30" max="0" step="1" value="-4" oninput="sync(this,'lbl-voice-vol','dB')"/>
+            <input type="range" id="voice-volume" min="-30" max="0" step="1" value="0" oninput="sync(this,'lbl-voice-vol','dB')"/>
           </div>
         </div>
         <div class="help-block">Adjust the relative volume of the modulated voice layers in the mix. 0 dB is full volume.</div>
@@ -325,9 +325,9 @@
             </select>
           </div>
           <div class="slider-block">
-            <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-music-vol">-3dB</span></div>
+            <div class="slider-meta"><span class="desc">Volume · dB</span><span class="v" id="lbl-music-vol">-8dB</span></div>
             <div class="slider-track">
-              <input type="range" id="music-volume" min="-30" max="0" step="1" value="-3" oninput="sync(this,'lbl-music-vol','dB')"/>
+              <input type="range" id="music-volume" min="-30" max="0" step="1" value="-8" oninput="sync(this,'lbl-music-vol','dB')"/>
             </div>
           </div>
         </div>
