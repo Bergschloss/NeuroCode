@@ -206,7 +206,7 @@ async def generate(
     save_encoded: str = Form("true"),
     save_raw: str = Form("false"),
     voice_volume: float = Form(-2.0),
-    tg_enabled: str = Form("false"),
+    tg_enabled: str = Form("true"),
     tg_token: str = Form(""),
     tg_chat_id: str = Form(""),
 ):
