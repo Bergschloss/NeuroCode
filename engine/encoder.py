@@ -1,7 +1,6 @@
 import gc
 import os
 import numpy as np
-import librosa
 import soundfile as sf
 import miniaudio
 from typing import Callable
@@ -53,6 +52,7 @@ def _trim_silence(audio: np.ndarray, threshold: float = 0.01) -> np.ndarray:
 
 def _stretch_chunked(audio: np.ndarray, rate: float, sr: int) -> np.ndarray:
     """Memory-safe time stretch with overlap/crossfade at chunk boundaries."""
+    import librosa
     chunk = CHUNK_SEC * sr
     if len(audio) <= chunk:
         return librosa.effects.time_stretch(audio, rate=rate)

@@ -587,27 +587,37 @@ if __name__ == "__main__":
         uvicorn.run("app:app", host="127.0.0.1", port=7860, reload=True)
     else:
         try:
-            import webview
+            import socket
             import threading
-            
+            import webview
+
             def start_server():
                 uvicorn.run("app:app", host="127.0.0.1", port=7860, log_level="warning")
-                
+
             t = threading.Thread(target=start_server, daemon=True)
             t.start()
-            
-            time.sleep(0.8)
-            
+
+            # Fast socket readiness check (polls every 10ms)
+            for _ in range(150):
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.05)
+                res = s.connect_ex(("127.0.0.1", 7860))
+                s.close()
+                if res == 0:
+                    break
+                time.sleep(0.01)
+
             window = webview.create_window(
                 "Neurocode Studio",
                 "http://127.0.0.1:7860",
                 width=1280,
                 height=850,
-                min_size=(1000, 700)
+                min_size=(1000, 700),
+                background_color="#222222",
             )
             window.js_api = GUI_API(window)
             webview.start()
-            
+
         except ImportError:
             print("pywebview is not installed. Falling back to browser mode...")
             uvicorn.run("app:app", host="127.0.0.1", port=7860, reload=True)
