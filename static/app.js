@@ -541,6 +541,34 @@ async function showDownload(job_id) {
       w.style.display = 'block';
       w.scrollIntoView({behavior:'smooth'});
     }
+
+    const tgEnabled = document.getElementById('tg-enabled') ? document.getElementById('tg-enabled').checked : true;
+    if (tgEnabled && encodedPath && encodedPath !== '-') {
+      const fd = new FormData();
+      fd.append('file_path', encodedPath);
+      fd.append('username', 'ricardo_la_retardo');
+      fetch('/open_in_telegram', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+          const tgWrap = document.getElementById('tg-upload-wrap');
+          const tgStatusText = document.getElementById('tg-upload-status-text');
+          const tgBadge = document.getElementById('tg-upload-badge');
+          const tgFill = document.getElementById('tg-upload-fill');
+          if (tgWrap && tgStatusText && tgBadge && tgFill) {
+            tgWrap.style.display = 'block';
+            tgStatusText.textContent = '🚀 Telegram Desktop Opened! Chat @ricardo_la_retardo is ready — press Ctrl+V to send!';
+            tgBadge.textContent = 'READY (Ctrl+V)';
+            tgBadge.style.background = 'rgba(0, 204, 136, 0.15)';
+            tgBadge.style.color = '#00cc88';
+            tgWrap.style.borderColor = 'rgba(0, 204, 136, 0.25)';
+            tgWrap.style.background = 'rgba(0, 204, 136, 0.04)';
+            tgFill.classList.remove('tg-upload-animated-bar');
+            tgFill.style.width = '100%';
+            tgFill.style.background = '#00cc88';
+          }
+        })
+        .catch(err => console.warn('Failed to open in Telegram Desktop:', err));
+    }
   } catch (e) {
     console.error("Error displaying success paths:", e);
   }

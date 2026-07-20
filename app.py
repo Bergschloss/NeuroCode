@@ -92,6 +92,39 @@ async def test_telegram_config(
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
+@app.post("/open_in_telegram")
+async def open_in_telegram(
+    file_path: str = Form(...),
+    username: str = Form("ricardo_la_retardo"),
+):
+    import subprocess
+    try:
+        path = Path(file_path)
+        if not path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+        clean_user = username.strip().replace("@", "")
+        tg_url = f"tg://resolve?domain={clean_user}" if clean_user else "tg://openmessage"
+
+        try:
+            os.startfile(tg_url)
+        except Exception as e:
+            print(f"[TG OPEN ERROR] {e}")
+
+        try:
+            subprocess.Popen(["explorer.exe", "/select,", str(path.resolve())])
+        except Exception as e:
+            print(f"[EXPLORER ERROR] {e}")
+
+        try:
+            subprocess.run(["powershell", "-Command", "Set-Clipboard", "-Path", str(path.resolve())], capture_output=True)
+        except Exception as e:
+            print(f"[CLIPBOARD ERROR] {e}")
+
+        return {"status": "success", "message": "Opened Telegram Desktop and copied file"}
+    except Exception as exc:
+        return {"status": "error", "error": str(exc)}
+
 job_store = JobStore()
 tts_cache = TtsCache()
 generation_slots = asyncio.Semaphore(1)
