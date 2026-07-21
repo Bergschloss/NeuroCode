@@ -96,10 +96,12 @@ async def test_telegram_config(
 async def open_in_telegram(
     file_path: str = Form(...),
     username: str = Form("ricardo_la_retardo"),
+    auto_send: str = Form("true"),
 ):
     import subprocess
+    import tempfile
     try:
-        path = Path(file_path)
+        path = Path(file_path).resolve()
         if not path.exists():
             raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
@@ -107,21 +109,33 @@ async def open_in_telegram(
         tg_url = f"tg://resolve?domain={clean_user}" if clean_user else "tg://openmessage"
 
         try:
+            ps_cmd = f"Set-Clipboard -Path '{path}'"
+            subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True)
+        except Exception as e:
+            print(f"[CLIPBOARD ERROR] {e}")
+
+        try:
             os.startfile(tg_url)
         except Exception as e:
             print(f"[TG OPEN ERROR] {e}")
 
-        try:
-            subprocess.Popen(["explorer.exe", "/select,", str(path.resolve())])
-        except Exception as e:
-            print(f"[EXPLORER ERROR] {e}")
+        do_auto = auto_send.lower() in ("true", "1", "yes", "on")
+        if do_auto:
+            vbs_code = """
+Set WshShell = WScript.CreateObject("WScript.Shell")
+WScript.Sleep 800
+WshShell.SendKeys "^v"
+WScript.Sleep 600
+WshShell.SendKeys "{ENTER}"
+"""
+            vbs_path = Path(tempfile.gettempdir()) / "ncs_tg_auto_send.vbs"
+            try:
+                vbs_path.write_text(vbs_code, encoding="utf-8")
+                subprocess.Popen(["cscript", "//Nologo", str(vbs_path)])
+            except Exception as e:
+                print(f"[SENDKEYS ERROR] {e}")
 
-        try:
-            subprocess.run(["powershell", "-Command", "Set-Clipboard", "-Path", str(path.resolve())], capture_output=True)
-        except Exception as e:
-            print(f"[CLIPBOARD ERROR] {e}")
-
-        return {"status": "success", "message": "Opened Telegram Desktop and copied file"}
+        return {"status": "success", "message": "Automatically sent file via Telegram Desktop"}
     except Exception as exc:
         return {"status": "error", "error": str(exc)}
 

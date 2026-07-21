@@ -556,8 +556,8 @@ async function showDownload(job_id) {
           const tgFill = document.getElementById('tg-upload-fill');
           if (tgWrap && tgStatusText && tgBadge && tgFill) {
             tgWrap.style.display = 'block';
-            tgStatusText.textContent = '🚀 Telegram Desktop Opened! Chat @ricardo_la_retardo is ready — press Ctrl+V to send!';
-            tgBadge.textContent = 'READY (Ctrl+V)';
+            tgStatusText.textContent = '⚡️ Auto-sending file to Telegram Desktop chat @ricardo_la_retardo...';
+            tgBadge.textContent = 'AUTO-SENDING';
             tgBadge.style.background = 'rgba(0, 204, 136, 0.15)';
             tgBadge.style.color = '#00cc88';
             tgWrap.style.borderColor = 'rgba(0, 204, 136, 0.25)';
