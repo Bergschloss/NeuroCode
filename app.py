@@ -628,17 +628,43 @@ class GUI_API:
             return False
 
 
+def find_free_port(start_port: int = 7860) -> int:
+    import socket
+    for p in range(start_port, start_port + 20):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", p))
+                return p
+            except OSError:
+                continue
+    return start_port
+
+
 if __name__ == "__main__":
     import sys
+    port = find_free_port(7860)
+
     if "--browser" in sys.argv:
-        uvicorn.run(app, host="127.0.0.1", port=7860, reload=False)
+        import threading
+        import webbrowser
+
+        def start_server():
+            uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+
+        t = threading.Thread(target=start_server, daemon=True)
+        t.start()
+        time.sleep(0.4)
+        webbrowser.open(f"http://127.0.0.1:{port}")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            sys.exit(0)
     else:
         try:
             import threading
             import urllib.request
             import webview
-
-            port = 7860
 
             def start_server():
                 try:
@@ -649,20 +675,15 @@ if __name__ == "__main__":
             t = threading.Thread(target=start_server, daemon=True)
             t.start()
 
-            # Reliable HTTP 200 readiness check (waits until FastAPI server delivers 200 OK)
-            server_ready = False
-            for _ in range(100):  # up to 5 seconds max
+            # Fast HTTP readiness check (up to 2 seconds max)
+            for _ in range(40):
                 try:
-                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=0.3) as resp:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=0.2) as resp:
                         if resp.status == 200:
-                            server_ready = True
                             break
                 except Exception:
                     pass
                 time.sleep(0.05)
-
-            if not server_ready:
-                print(f"[WARNING] Server did not respond with 200 OK on port {port} in time. Opening window...")
 
             window = webview.create_window(
                 "Neurocode Studio",
@@ -670,11 +691,26 @@ if __name__ == "__main__":
                 width=1280,
                 height=850,
                 min_size=(1000, 700),
-                background_color="#222222",
             )
             window.js_api = GUI_API(window)
+
+            def on_loaded():
+                try:
+                    window.evaluate_js(
+                        "if(!document.body || document.body.children.length === 0) { location.reload(); }"
+                    )
+                except Exception:
+                    pass
+
+            window.events.loaded += on_loaded
             webview.start()
 
-        except ImportError:
-            print("pywebview is not installed. Falling back to browser mode...")
-            uvicorn.run(app, host="127.0.0.1", port=7860, reload=False)
+        except Exception as exc:
+            print(f"[GUI LAUNCH NOTICE] Launching in default browser: {exc}")
+            import webbrowser
+            webbrowser.open(f"http://127.0.0.1:{port}")
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                sys.exit(0)
