@@ -631,32 +631,42 @@ class GUI_API:
 if __name__ == "__main__":
     import sys
     if "--browser" in sys.argv:
-        uvicorn.run("app:app", host="127.0.0.1", port=7860, reload=True)
+        uvicorn.run(app, host="127.0.0.1", port=7860, reload=False)
     else:
         try:
-            import socket
             import threading
+            import urllib.request
             import webview
 
+            port = 7860
+
             def start_server():
-                uvicorn.run("app:app", host="127.0.0.1", port=7860, log_level="warning")
+                try:
+                    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+                except Exception as err:
+                    print(f"[SERVER ERROR] Could not start server on port {port}: {err}")
 
             t = threading.Thread(target=start_server, daemon=True)
             t.start()
 
-            # Fast socket readiness check (polls every 10ms)
-            for _ in range(150):
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.05)
-                res = s.connect_ex(("127.0.0.1", 7860))
-                s.close()
-                if res == 0:
-                    break
-                time.sleep(0.01)
+            # Reliable HTTP 200 readiness check (waits until FastAPI server delivers 200 OK)
+            server_ready = False
+            for _ in range(100):  # up to 5 seconds max
+                try:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=0.3) as resp:
+                        if resp.status == 200:
+                            server_ready = True
+                            break
+                except Exception:
+                    pass
+                time.sleep(0.05)
+
+            if not server_ready:
+                print(f"[WARNING] Server did not respond with 200 OK on port {port} in time. Opening window...")
 
             window = webview.create_window(
                 "Neurocode Studio",
-                "http://127.0.0.1:7860",
+                f"http://127.0.0.1:{port}",
                 width=1280,
                 height=850,
                 min_size=(1000, 700),
@@ -667,4 +677,4 @@ if __name__ == "__main__":
 
         except ImportError:
             print("pywebview is not installed. Falling back to browser mode...")
-            uvicorn.run("app:app", host="127.0.0.1", port=7860, reload=True)
+            uvicorn.run(app, host="127.0.0.1", port=7860, reload=False)
