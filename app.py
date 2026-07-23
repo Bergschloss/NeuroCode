@@ -163,8 +163,8 @@ def validate_generation_params(
     errors = []
     if not text_main.strip():
         errors.append("Affirmation text cannot be empty")
-    if layers < 4 or layers > 32 or layers % 2:
-        errors.append("Layers must be an even number from 4 to 32")
+    if layers < 4 or layers > 16 or layers % 2:
+        errors.append("Layers must be an even number from 4 to 16")
     if not 2.0 <= speed_min <= 9.0:
         errors.append("Minimum speed must be between 2x and 9x")
     if not 3.0 <= speed_max <= 10.0:
@@ -237,7 +237,7 @@ async def generate(
     voice_ru: str = Form("ru-RU-SvetlanaNeural"),
     voice_en: str = Form("en-US-AriaNeural"),
     lang_main: str = Form("auto"),
-    layers: int = Form(12),
+    layers: int = Form(8),
     speed_min: float = Form(3.0),
     speed_max: float = Form(4.0),
     silence_start: float = Form(1.5),
