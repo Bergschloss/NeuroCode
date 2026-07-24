@@ -98,16 +98,29 @@ function onInput(id) {
   const fades = (silStartEl ? parseFloat(silStartEl.value) : 1.5) + (silEndEl ? parseFloat(silEndEl.value) : 1.5);
 
   let estDurSec = 0;
-  let estMp3Mb = "0.00";
+  let estMp3Mb = "0.0";
+  let estWavMb = "0.0";
+  let formattedTime = "0s";
+
   if (words > 0) {
     const baseSpeechSec = words * 0.47;
     estDurSec = Math.max(2, Math.round((baseSpeechSec / speedMin) + fades));
-    estMp3Mb = (estDurSec * 40 / 1024).toFixed(2);
+    
+    const mins = Math.floor(estDurSec / 60);
+    const secs = estDurSec % 60;
+    formattedTime = mins > 0 ? `${mins}m ${secs}s (${estDurSec}s)` : `${secs}s`;
+
+    // MP3 320 kbps: 40 KB/s
+    estMp3Mb = (estDurSec * 40 / 1024).toFixed(1);
+    // WAV 44.1kHz 16-bit Stereo: 172.266 KB/s
+    estWavMb = (estDurSec * 172.266 / 1024).toFixed(1);
   }
 
   const durEl = document.getElementById('dur-'+id);
   if (durEl) {
-    durEl.textContent = estDurSec > 0 ? `Est. Duration: ~${estDurSec}s · Est. MP3 320k: ~${estMp3Mb} MB` : '—';
+    durEl.textContent = estDurSec > 0 
+      ? `Est. Duration: ~${formattedTime} · MP3: ~${estMp3Mb} MB · WAV: ~${estWavMb} MB` 
+      : '—';
   }
   
   const preview = document.getElementById('preview-'+id);
