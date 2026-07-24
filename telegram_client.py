@@ -52,6 +52,9 @@ def test_connection(token: str, chat_id: str) -> dict:
 
 
 def send_document(token: str, chat_id: str, file_path: str, caption: str = "") -> dict:
+    import tempfile
+    import uuid
+
     path = Path(file_path)
     if not path.exists():
         return {"ok": False, "error": f"File not found: {file_path}"}
@@ -59,46 +62,40 @@ def send_document(token: str, chat_id: str, file_path: str, caption: str = "") -
     upload_path = path
     temp_compressed_path = None
     
-    # Telegram Bot API limit is 50 MB (50 * 1024 * 1024 bytes)
-    if path.stat().st_size > 50 * 1024 * 1024:
-        import shutil
-        import subprocess
-        ffmpeg_bin = shutil.which("ffmpeg")
-        if ffmpeg_bin:
-            try:
-                # STRICT REQUIREMENT: Only maximum quality 320 kbps MP3 allowed (no lower bitrates)
-                bitrate_kbps = 320
-                clean_name = path.stem
-                temp_compressed_path = path.parent / f"{clean_name}_320k.mp3"
-                
-                cmd = [
-                    ffmpeg_bin, "-y", "-i", str(path),
-                    "-b:a", f"{bitrate_kbps}k",
-                    "-ac", "2",
-                    "-ar", "44100",
-                    str(temp_compressed_path)
-                ]
-                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                
-                if temp_compressed_path.exists() and temp_compressed_path.stat().st_size <= 50 * 1024 * 1024:
-                    upload_path = temp_compressed_path
-                    caption += f"\n\n⚡️ _(Converted to Maximum Quality {bitrate_kbps}k MP3 for Telegram)_"
-            except Exception as conv_err:
-                print(f"[TG CONVERT ERROR] {conv_err}")
-
-    if upload_path.stat().st_size > 50 * 1024 * 1024:
-        size_mb = upload_path.stat().st_size / 1024 / 1024
-        return {
-            "ok": False,
-            "error": f"File size ({size_mb:.1f} MB) exceeds Telegram's 50 MB bot limit even at 320k MP3.",
-        }
-
     try:
-        filename_override = upload_path.name
-        if "_320k.mp3" in filename_override or "_tg_" in filename_override:
-            clean_stem = path.stem
-            filename_override = f"{clean_stem}.mp3"
+        # Telegram Bot API limit is 50 MB (50 * 1024 * 1024 bytes)
+        if path.stat().st_size > 50 * 1024 * 1024:
+            import shutil
+            import subprocess
+            ffmpeg_bin = shutil.which("ffmpeg")
+            if ffmpeg_bin:
+                try:
+                    bitrate_kbps = 320
+                    temp_compressed_path = Path(tempfile.gettempdir()) / f"ncs_tg_{uuid.uuid4().hex[:8]}.mp3"
+                    
+                    cmd = [
+                        ffmpeg_bin, "-y", "-i", str(path),
+                        "-b:a", f"{bitrate_kbps}k",
+                        "-ac", "2",
+                        "-ar", "44100",
+                        str(temp_compressed_path)
+                    ]
+                    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                    
+                    if temp_compressed_path.exists() and temp_compressed_path.stat().st_size <= 50 * 1024 * 1024:
+                        upload_path = temp_compressed_path
+                        caption += f"\n\n⚡️ _(Converted to Maximum Quality {bitrate_kbps}k MP3 for Telegram)_"
+                except Exception as conv_err:
+                    print(f"[TG CONVERT ERROR] {conv_err}")
 
+        if upload_path.stat().st_size > 50 * 1024 * 1024:
+            size_mb = upload_path.stat().st_size / 1024 / 1024
+            return {
+                "ok": False,
+                "error": f"File size ({size_mb:.1f} MB) exceeds Telegram's 50 MB bot limit even at 320k MP3.",
+            }
+
+        filename_override = path.name
         with upload_path.open("rb") as handle:
             response = requests.post(
                 f"https://api.telegram.org/bot{token}/sendDocument",
@@ -116,6 +113,6 @@ def send_document(token: str, chat_id: str, file_path: str, caption: str = "") -
     finally:
         if temp_compressed_path and temp_compressed_path.exists():
             try:
-                temp_compressed_path.unlink()
+                temp_compressed_path.unlink(missing_ok=True)
             except Exception:
                 pass
