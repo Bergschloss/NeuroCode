@@ -102,13 +102,23 @@ function onInput(id) {
   let estWavMb = "0.0";
   let formattedTime = "0s";
 
-  if (words > 0) {
-    const baseSpeechSec = words * 0.47;
+  if (chars > 0) {
+    const segs = text.trim() ? getSegments(text, forced) : [];
+    let baseSpeechSec = 0;
+    if (segs.length > 0) {
+      segs.forEach(s => {
+        const cps = s.lang === 'en' ? 14.5 : 10.2;
+        baseSpeechSec += s.t.length / cps;
+      });
+    } else {
+      baseSpeechSec = chars / 10.5;
+    }
+    
     estDurSec = Math.max(2, Math.round((baseSpeechSec / speedMin) + fades));
     
     const mins = Math.floor(estDurSec / 60);
     const secs = estDurSec % 60;
-    formattedTime = mins > 0 ? `${mins}m ${secs}s (${estDurSec}s)` : `${secs}s`;
+    formattedTime = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
     // MP3 320 kbps: 40 KB/s
     estMp3Mb = (estDurSec * 40 / 1024).toFixed(1);
@@ -119,7 +129,7 @@ function onInput(id) {
   const durEl = document.getElementById('dur-'+id);
   if (durEl) {
     durEl.textContent = estDurSec > 0 
-      ? `Est. Duration: ~${formattedTime} · MP3: ~${estMp3Mb} MB · WAV: ~${estWavMb} MB` 
+      ? `Est. Duration: ~${formattedTime} (${estDurSec}s) · MP3: ~${estMp3Mb} MB · WAV: ~${estWavMb} MB` 
       : '—';
   }
   
