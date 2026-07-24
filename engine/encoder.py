@@ -425,6 +425,7 @@ def mix_final(
     silence_end: float,   # treat as fade out duration
     output_path: str | None,
     output_raw_path: str | None = None,
+    output_flac_path: str | None = None,
     binaural_type: str = "none",
     binaural_volume: float = -12.0,
     music_type: str = "none",
@@ -436,14 +437,14 @@ def mix_final(
     cancel_cb: Callable[[], None] | None = None,
 ) -> None:
     """
-    Build the WAV with actual fade in / fade out and stereo.
+    Build final audio with TPDF dithered MP3 320k, Lossless FLAC, or WAV output.
     """
-    if output_path:
+    if output_path or output_flac_path:
         if log_cb:
             log_cb("Preparing multi-layer AM encoding...")
 
         if progress_cb:
-            progress_cb(15)
+            progress_cb(20)
 
         main_encoded = encode_multilayer(
             main_audio, sr, n_layers, speed_min, speed_max,
@@ -506,9 +507,21 @@ def mix_final(
         if peak > 0:
             final *= OUTPUT_CEILING / peak
 
-        if log_cb:
-            log_cb("Writing 44.1 kHz / 16-bit encoded WAV file...")
-        sf.write(output_path, final, sr, subtype="PCM_16")
+        if output_path:
+            ext = str(Path(output_path).suffix.lower())
+            if log_cb:
+                if ext == ".mp3":
+                    log_cb("Writing 320 kbps TPDF-dithered MP3 audio file...")
+                elif ext == ".flac":
+                    log_cb("Writing 44.1 kHz Lossless FLAC audio file...")
+                else:
+                    log_cb("Writing 44.1 kHz 16-bit WAV file...")
+            _write_audio_file(output_path, final, sr)
+
+        if output_flac_path:
+            if log_cb:
+                log_cb("Writing 44.1 kHz Lossless FLAC audio file...")
+            _write_audio_file(output_flac_path, final, sr)
 
     if output_raw_path:
         if cancel_cb:
@@ -533,7 +546,7 @@ def mix_final(
         raw_peak = np.max(np.abs(raw_final))
         if raw_peak > 0:
             raw_final *= OUTPUT_CEILING / raw_peak
-        sf.write(output_raw_path, raw_final, sr, subtype="PCM_16")
+        _write_audio_file(output_raw_path, raw_final, sr)
 
     if log_cb:
         log_cb("Generation finished successfully.")

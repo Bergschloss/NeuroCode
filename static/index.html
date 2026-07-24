@@ -403,7 +403,7 @@
             <input type="text" id="export-dir" placeholder="F:\_Neurocode" value="F:\_Neurocode" style="flex: 1;"/>
             <button class="loader-settings-btn" id="btn-browse-folder" style="display: none; height: 38px; padding: 0 16px; margin: 0;" onclick="browseFolder()">Browse...</button>
           </div>
-          <div class="help-block">Disk directory where the WAV files will be written. If a relative path is provided (e.g., outputs), it will be relative to the application's root folder.</div>
+          <div class="help-block">Disk directory where exported audio files will be written. If a relative path is provided (e.g., outputs), it will be relative to the application's root folder.</div>
         </div>
       </div>
     </div>
@@ -411,7 +411,12 @@
     <div style="margin-top: 16px; display: flex; gap: 24px; flex-wrap: wrap; border-top: 1px solid var(--border-color); padding-top: 16px;">
       <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
         <input type="checkbox" id="export-autosave-encoded" checked style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;"/>
-        <span>Auto-save encoded WAV</span>
+        <span>Auto-save MP3 320k (Dithered)</span>
+      </label>
+
+      <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
+        <input type="checkbox" id="export-autosave-flac" style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;"/>
+        <span>Save Lossless FLAC</span>
       </label>
       
       <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
@@ -429,11 +434,11 @@
   <!-- ACTION -->
   <div class="action">
     <div class="action-meta">
-      Output · <strong>WAV / 44.1 kHz / 16-bit / Stereo</strong><br/>
+      Output · <strong>MP3 320k (Dithered) / 44.1 kHz / Stereo</strong><br/>
       Composer-grade encoding · long-form
     </div>
     <button class="btn-generate" id="btn-gen" onclick="generate()">
-      <span>Generate WAV</span>
+      <span>Generate Audio</span>
     </button>
     <button class="loader-settings-btn" id="btn-cancel" style="display:none; height:48px; padding:0 20px;" onclick="cancelGeneration()">
       Cancel

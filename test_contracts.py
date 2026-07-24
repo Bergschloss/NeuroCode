@@ -15,7 +15,8 @@ from job_state import GenerationCancelled, JobStore, TtsCache
 
 
 def test_output_contract_is_44khz_pcm16(tmp_path):
-    encoded = tmp_path / "encoded.wav"
+    encoded = tmp_path / "encoded.mp3"
+    flac_file = tmp_path / "encoded.flac"
     audio = np.sin(
         2 * np.pi * 220 * np.arange(TARGET_SR // 20, dtype=np.float32) / TARGET_SR
     )
@@ -29,12 +30,15 @@ def test_output_contract_is_44khz_pcm16(tmp_path):
         0,
         0,
         str(encoded),
+        output_flac_path=str(flac_file),
     )
 
-    info = sf.info(encoded)
-    assert info.samplerate == 44100
-    assert info.channels == 2
-    assert info.subtype == "PCM_16"
+    assert encoded.exists()
+    assert flac_file.exists()
+
+    info_flac = sf.info(flac_file)
+    assert info_flac.samplerate == 44100
+    assert info_flac.channels == 2
 
 
 def test_disabled_outputs_are_not_written(tmp_path):

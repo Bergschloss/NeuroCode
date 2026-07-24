@@ -8,18 +8,22 @@ if not exist "%PYTHON%" (
     set PYTHON=python
 )
 
-if not exist ".deps_ok" (
-    echo [1/2] Checking dependencies...
-    "%PYTHON%" -c "import fastapi, uvicorn, edge_tts, soundfile, webview" >nul 2>&1
-    if !errorlevel! neq 0 (
-        echo Dependencies are missing or incomplete. Installing...
-        "%PYTHON%" -m pip install -r requirements.txt
-    )
-    echo ok > ".deps_ok"
+"%PYTHON%" -c "import fastapi, uvicorn, edge_tts, soundfile, webview" >nul 2>&1
+if !errorlevel! neq 0 (
+    echo [1/2] Installing required packages...
+    "%PYTHON%" -m pip install -r requirements.txt
 )
 
 if not exist "%USERPROFILE%\Desktop\Neurocode Studio.lnk" (
+    echo [2/2] Creating desktop shortcut...
     "%PYTHON%" create_shortcut.py >nul 2>&1
 )
 
+echo Starting Neurocode Studio...
 "%PYTHON%" app.py
+
+if !errorlevel! neq 0 (
+    echo.
+    echo [ERROR] App exited with error code !errorlevel!
+    pause
+)

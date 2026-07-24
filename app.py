@@ -159,6 +159,7 @@ def validate_generation_params(
     lang_main: str,
     save_encoded: bool,
     save_raw: bool,
+    save_flac: bool = False,
 ) -> None:
     errors = []
     if not text_main.strip():
@@ -183,39 +184,27 @@ def validate_generation_params(
         errors.append("Binaural volume must be between -30 dB and -6 dB")
     if not -30 <= music_volume <= 0 or not -30 <= voice_volume <= 0:
         errors.append("Music and voice volumes must be between -30 dB and 0 dB")
-    if not save_encoded and not save_raw:
+    if not save_encoded and not save_raw and not save_flac:
         errors.append("At least one output format must be enabled")
     if errors:
         raise HTTPException(status_code=422, detail=errors)
 
 
 def cleanup_old_outputs(max_age_seconds: float = 3600):
-    """Delete wav files in outputs/ folder that are older than max_age_seconds."""
+    """Delete output files in outputs/ folder that are older than max_age_seconds."""
     try:
         now = time.time()
-        for path in OUTPUTS.glob("*.wav"):
-            if path.is_file():
-                file_age = now - path.stat().st_mtime
-                if file_age > max_age_seconds:
-                    try:
-                        path.unlink()
+        for ext in ("*.mp3", "*.flac", "*.wav"):
+            for path in OUTPUTS.glob(ext):
+                if path.is_file():
+                    file_age = now - path.stat().st_mtime
+                    if file_age > max_age_seconds:
                         try:
-                            print(f"[CLEANUP] Deleted old output file: {path.name}")
-                        except UnicodeEncodeError:
-                            safe_name = path.name.encode('ascii', errors='backslashreplace').decode('ascii')
-                            print(f"[CLEANUP] Deleted old output file: {safe_name}")
-                    except Exception as e:
-                        try:
+                            path.unlink()
+                        except Exception as e:
                             print(f"[CLEANUP ERROR] Could not delete {path.name}: {e}")
-                        except UnicodeEncodeError:
-                            safe_name = path.name.encode('ascii', errors='backslashreplace').decode('ascii')
-                            print(f"[CLEANUP ERROR] Could not delete {safe_name}: {e}")
     except Exception as e:
-        try:
-            print(f"[CLEANUP ERROR] General cleanup error: {e}")
-        except UnicodeEncodeError:
-            safe_msg = str(e).encode('ascii', errors='backslashreplace').decode('ascii')
-            print(f"[CLEANUP ERROR] General cleanup error: {safe_msg}")
+        print(f"[CLEANUP ERROR] Directory cleanup failed: {e}")
 
 
 @app.get("/music_tracks")
@@ -251,6 +240,7 @@ async def generate(
     export_filename: str = Form(None),
     export_dir: str = Form(None),
     save_encoded: str = Form("true"),
+    save_flac: str = Form("false"),
     save_raw: str = Form("false"),
     voice_volume: float = Form(-2.0),
     tg_enabled: str = Form("true"),
@@ -264,6 +254,7 @@ async def generate(
     job_id = uuid.uuid4().hex[:8]
 
     save_enc_flag = save_encoded.lower() in ("true", "1", "yes", "on")
+    save_flac_flag = save_flac.lower() in ("true", "1", "yes", "on")
     save_raw_flag = save_raw.lower() in ("true", "1", "yes", "on")
     tg_enabled_flag = tg_enabled.lower() in ("true", "1", "yes", "on")
     validate_generation_params(
@@ -280,6 +271,7 @@ async def generate(
         lang_main=lang_main,
         save_encoded=save_enc_flag,
         save_raw=save_raw_flag,
+        save_flac=save_flac_flag,
     )
     job_store.cleanup()
 
@@ -290,7 +282,7 @@ async def generate(
         try:
             custom_path = Path(export_dir).resolve()
             custom_path.mkdir(parents=True, exist_ok=True)
-            if save_enc_flag:
+            if save_enc_flag or save_flac_flag:
                 target_dir_encoded = custom_path
             if save_raw_flag:
                 target_dir_raw = custom_path
@@ -303,56 +295,65 @@ async def generate(
     # Determine custom filename
     if export_filename and export_filename.strip():
         base_name = export_filename.strip()
-        if base_name.lower().endswith(".wav"):
-            base_name = base_name[:-4]
+        for ext in (".wav", ".mp3", ".flac"):
+            if base_name.lower().endswith(ext):
+                base_name = base_name[:-len(ext)]
         import re
-        base_name = re.sub(r'[\\/*?:"<>|]', "", base_name)
-        base_name = base_name.strip()
-        if base_name:
-            fname = base_name
-        else:
-            fname = generate_auto_filename(text_main, music_type)
+        base_name = re.sub(r'[\\/*?:"<>|]', "", base_name).strip()
+        fname = base_name if base_name else generate_auto_filename(text_main, music_type)
     else:
         fname = generate_auto_filename(text_main, music_type)
 
     output_path = None
+    output_flac_path = None
     output_raw_path = None
 
-    # Encoded file path resolution
+    # Encoded MP3 320k file path resolution
     if save_enc_flag and export_filename and fname != job_id:
-        candidate = target_dir_encoded / f"{fname}.wav"
+        candidate = target_dir_encoded / f"{fname}.mp3"
         if candidate.exists():
             counter = 1
             while True:
-                candidate = target_dir_encoded / f"{fname} ({counter}).wav"
+                candidate = target_dir_encoded / f"{fname} ({counter}).mp3"
                 if not candidate.exists():
                     break
                 counter += 1
-            output_path = str(candidate)
-        else:
-            output_path = str(candidate)
+        output_path = str(candidate)
     elif save_enc_flag:
-        output_path = str(target_dir_encoded / f"{fname}.wav")
+        output_path = str(target_dir_encoded / f"{fname}.mp3")
+
+    # Lossless FLAC file path resolution
+    if save_flac_flag and export_filename and fname != job_id:
+        candidate_flac = target_dir_encoded / f"{fname}.flac"
+        if candidate_flac.exists():
+            counter = 1
+            while True:
+                candidate_flac = target_dir_encoded / f"{fname} ({counter}).flac"
+                if not candidate_flac.exists():
+                    break
+                counter += 1
+        output_flac_path = str(candidate_flac)
+    elif save_flac_flag:
+        output_flac_path = str(target_dir_encoded / f"{fname}.flac")
 
     # Raw file path resolution
     if save_raw_flag and export_filename and fname != job_id:
-        candidate_raw = target_dir_raw / f"{fname}_raw.wav"
+        candidate_raw = target_dir_raw / f"{fname}_raw.mp3"
         if candidate_raw.exists():
             counter = 1
             while True:
-                candidate_raw = target_dir_raw / f"{fname} ({counter})_raw.wav"
+                candidate_raw = target_dir_raw / f"{fname} ({counter})_raw.mp3"
                 if not candidate_raw.exists():
                     break
                 counter += 1
-            output_raw_path = str(candidate_raw)
-        else:
-            output_raw_path = str(candidate_raw)
+        output_raw_path = str(candidate_raw)
     elif save_raw_flag:
-        output_raw_path = str(target_dir_raw / f"{fname}_raw.wav")
+        output_raw_path = str(target_dir_raw / f"{fname}_raw.mp3")
 
     job_store.create(
         job_id,
         output_path=output_path,
+        output_flac_path=output_flac_path,
         output_raw_path=output_raw_path,
     )
     voices = {"uk": voice_uk, "ru": voice_ru, "en": voice_en}
@@ -368,7 +369,7 @@ async def generate(
         binaural_type, binaural_volume,
         music_type, music_volume,
         notch_flag,
-        output_path, output_raw_path,
+        output_path, output_raw_path, output_flac_path,
         client_session_id,
         voice_volume,
         tg_enabled_flag,
@@ -399,7 +400,7 @@ async def _run(
     binaural_type, binaural_volume,
     music_type, music_volume,
     music_notch_enabled,
-    out, out_raw,
+    out, out_raw, out_flac=None,
     client_session_id=None,
     voice_volume=0.0,
     tg_enabled=False,
@@ -419,14 +420,14 @@ async def _run(
                 silence_start, silence_end,
                 binaural_type, binaural_volume,
                 music_type, music_volume, music_notch_enabled,
-                out, out_raw, client_session_id, voice_volume,
+                out, out_raw, out_flac, client_session_id, voice_volume,
                 tg_enabled, tg_token, tg_chat_id,
                 save_enc_flag, save_raw_flag,
             )
     except GenerationCancelled:
         add_job_log(job_id, "Generation cancelled.")
         job_store.update(job_id, status="cancelled", progress=0)
-        for path in (out, out_raw):
+        for path in (out, out_raw, out_flac):
             if path:
                 Path(path).unlink(missing_ok=True)
     except Exception as exc:
@@ -444,7 +445,7 @@ async def _process_job(
     binaural_type, binaural_volume,
     music_type, music_volume,
     music_notch_enabled,
-    out, out_raw,
+    out, out_raw, out_flac,
     client_session_id,
     voice_volume,
     tg_enabled,
@@ -495,7 +496,7 @@ async def _process_job(
             main_audio,
             sr, layers, speed_min, speed_max,
             silence_start, silence_end,
-            out, out_raw,
+            out, out_raw, out_flac,
             binaural_type, binaural_volume,
             music_type, music_volume,
             music_notch_enabled,
@@ -514,7 +515,7 @@ async def _process_job(
             
             # Encoded file
             if save_enc_flag and out and os.path.exists(out):
-                add_job_log(job_id, f"Sending Encoded WAV to Telegram bot ({os.path.basename(out)})...")
+                add_job_log(job_id, f"Sending Encoded MP3 320k to Telegram bot ({os.path.basename(out)})...")
                 res = await loop.run_in_executor(
                     None,
                     send_telegram_document,
@@ -571,13 +572,33 @@ async def download(job_id: str):
     if job and job.get("output_path"):
         path = Path(job["output_path"])
         if path.exists():
+            media = "audio/mpeg" if path.suffix.lower() == ".mp3" else ("audio/flac" if path.suffix.lower() == ".flac" else "audio/wav")
             return FileResponse(
-                str(path), media_type="audio/wav", filename=path.name
+                str(path), media_type=media, filename=path.name
             )
-    path = OUTPUTS / f"{job_id}.wav"
+    for ext in (".mp3", ".flac", ".wav"):
+        path = OUTPUTS / f"{job_id}{ext}"
+        if path.exists():
+            media = "audio/mpeg" if ext == ".mp3" else ("audio/flac" if ext == ".flac" else "audio/wav")
+            return FileResponse(
+                str(path), media_type=media, filename=f"neurocode_{job_id}{ext}"
+            )
+    return {"error": "not found"}
+
+
+@app.get("/download_flac/{job_id}")
+async def download_flac(job_id: str):
+    job = job_store.get(job_id)
+    if job and job.get("output_flac_path"):
+        path = Path(job["output_flac_path"])
+        if path.exists():
+            return FileResponse(
+                str(path), media_type="audio/flac", filename=path.name
+            )
+    path = OUTPUTS / f"{job_id}.flac"
     if path.exists():
         return FileResponse(
-            str(path), media_type="audio/wav", filename=f"neurocode_{job_id}.wav"
+            str(path), media_type="audio/flac", filename=f"neurocode_{job_id}.flac"
         )
     return {"error": "not found"}
 
@@ -588,14 +609,17 @@ async def download_raw(job_id: str):
     if job and job.get("output_raw_path"):
         path = Path(job["output_raw_path"])
         if path.exists():
+            media = "audio/mpeg" if path.suffix.lower() == ".mp3" else ("audio/flac" if path.suffix.lower() == ".flac" else "audio/wav")
             return FileResponse(
-                str(path), media_type="audio/wav", filename=path.name
+                str(path), media_type=media, filename=path.name
             )
-    path = OUTPUTS / f"{job_id}_raw.wav"
-    if path.exists():
-        return FileResponse(
-            str(path), media_type="audio/wav", filename=f"neurocode_{job_id}_raw.wav"
-        )
+    for ext in (".mp3", ".flac", ".wav"):
+        path = OUTPUTS / f"{job_id}_raw{ext}"
+        if path.exists():
+            media = "audio/mpeg" if ext == ".mp3" else ("audio/flac" if ext == ".flac" else "audio/wav")
+            return FileResponse(
+                str(path), media_type=media, filename=f"neurocode_{job_id}_raw{ext}"
+            )
     return {"error": "not found"}
 
 

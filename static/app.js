@@ -375,10 +375,11 @@ async function generate() {
   fd.append('music_type',       document.getElementById('music-type').value);
   fd.append('music_volume',     document.getElementById('music-volume').value);
   fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
-  fd.append('voice_volume',     document.getElementById('voice-volume').value);
+  const autosaveFlac = document.getElementById('export-autosave-flac') ? document.getElementById('export-autosave-flac').checked : false;
   fd.append('export_filename', document.getElementById('export-filename').value.trim());
   fd.append('export_dir',      exportDir);
   fd.append('save_encoded',    autosaveEncoded ? 'true' : 'false');
+  fd.append('save_flac',       autosaveFlac ? 'true' : 'false');
   fd.append('save_raw',        autosaveRaw ? 'true' : 'false');
   fd.append('tg_enabled',      document.getElementById('tg-enabled').checked ? 'true' : 'false');
   fd.append('tg_token',        document.getElementById('tg-token').value.trim());
@@ -515,13 +516,26 @@ async function showDownload(job_id) {
     const autosaveEncoded = document.getElementById('export-autosave-encoded').checked;
     const autosaveRaw = document.getElementById('export-autosave-raw').checked;
     
+    const flacPath = d.output_flac_path || '-';
+    const autosaveFlac = document.getElementById('export-autosave-flac') ? document.getElementById('export-autosave-flac').checked : false;
+
     const encodedEl = document.getElementById('success-path-encoded');
     if (encodedEl) {
       if (autosaveEncoded) {
         encodedEl.style.display = 'block';
-        encodedEl.textContent = `Encoded: ${encodedPath}`;
+        encodedEl.textContent = `Encoded MP3: ${encodedPath}`;
       } else {
         encodedEl.style.display = 'none';
+      }
+    }
+
+    const flacEl = document.getElementById('success-path-flac');
+    if (flacEl) {
+      if (autosaveFlac && flacPath !== '-') {
+        flacEl.style.display = 'block';
+        flacEl.textContent = `Lossless FLAC: ${flacPath}`;
+      } else {
+        flacEl.style.display = 'none';
       }
     }
 
