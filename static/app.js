@@ -175,26 +175,32 @@ loadMusicTracks();
 
 // Set controls on load
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize path geometry for the Liquid Flow loader
+  // Initialize path geometry for Liquid Flow loaders (top & bottom)
   const SVG = 'http://www.w3.org/2000/svg';
-  const base = document.getElementById('lfBase');
-  const fill = document.getElementById('lfFillG');
-  if (base && fill) {
-    base.innerHTML = '';
-    fill.innerHTML = '';
-    const N = 18;
-    for (let i = 0; i < N; i++) {
-      const y = 6 + i * (76 / (N - 1));
-      const d = `M-40 ${y} L 1040 ${y}`;
-      const p1 = document.createElementNS(SVG, 'path');
-      p1.setAttribute('d', d);
-      base.appendChild(p1);
-      
-      const p2 = document.createElementNS(SVG, 'path');
-      p2.setAttribute('d', d);
-      fill.appendChild(p2);
+  const loaderPairs = [
+    { base: 'lfBase', fill: 'lfFillG' },
+    { base: 'bottom-lfBase', fill: 'bottom-lfFillG' }
+  ];
+  loaderPairs.forEach(pair => {
+    const base = document.getElementById(pair.base);
+    const fill = document.getElementById(pair.fill);
+    if (base && fill) {
+      base.innerHTML = '';
+      fill.innerHTML = '';
+      const N = 18;
+      for (let i = 0; i < N; i++) {
+        const y = 6 + i * (76 / (N - 1));
+        const d = `M-40 ${y} L 1040 ${y}`;
+        const p1 = document.createElementNS(SVG, 'path');
+        p1.setAttribute('d', d);
+        base.appendChild(p1);
+        
+        const p2 = document.createElementNS(SVG, 'path');
+        p2.setAttribute('d', d);
+        fill.appendChild(p2);
+      }
     }
-  }
+  });
   // Load saved path and filename from localStorage
   const savedDir = localStorage.getItem('ncs_export_dir');
   if (savedDir) {
@@ -317,25 +323,25 @@ function updateLoaderVisibility() {
 }
 
 function renderActiveLoader(pct, stage) {
-  const fillEl = document.getElementById('lfFill');
-  if (fillEl) {
-    fillEl.style.width = pct + '%';
-  }
+  ['lfFill', 'bottom-lfFill'].forEach(id => {
+    const fillEl = document.getElementById(id);
+    if (fillEl) fillEl.style.width = pct + '%';
+  });
   
-  const shell = document.getElementById('top-loader');
-  if (shell) {
-    shell.style.setProperty('--lf-pct', pct + '%');
-  }
+  ['top-loader', 'bottom-loader'].forEach(id => {
+    const shell = document.getElementById(id);
+    if (shell) shell.style.setProperty('--lf-pct', pct + '%');
+  });
 
-  const pctLabel = document.getElementById('loader-pct-label');
-  if (pctLabel) {
-    pctLabel.textContent = `${Math.round(pct)}/100`;
-  }
+  ['loader-pct-label', 'bottom-loader-pct-label'].forEach(id => {
+    const pctLabel = document.getElementById(id);
+    if (pctLabel) pctLabel.textContent = `${Math.round(pct)}/100`;
+  });
   
-  const stageLabel = document.getElementById('loader-stage-label');
-  if (stageLabel) {
-    stageLabel.textContent = `${stage.toUpperCase()} · 44.1 kHz / 16-bit / Stereo`;
-  }
+  ['loader-stage-label', 'bottom-loader-stage-label'].forEach(id => {
+    const stageLabel = document.getElementById(id);
+    if (stageLabel) stageLabel.textContent = `${stage.toUpperCase()} · 44.1 kHz / 16-bit / Stereo`;
+  });
 }
 
 /* Sync properties */
@@ -498,10 +504,10 @@ function pollStatus(job_id) {
       // Update real-time log ticker
       if (d.logs && d.logs.length > 0) {
         const latestLog = d.logs[d.logs.length - 1];
-        const ticker = document.getElementById('loader-ticker-label');
-        if (ticker) {
-          ticker.textContent = latestLog;
-        }
+        ['loader-ticker-label', 'bottom-loader-ticker-label'].forEach(id => {
+          const ticker = document.getElementById(id);
+          if (ticker) ticker.textContent = latestLog;
+        });
         updateTelegramUploadProgress(d.logs);
       }
       
@@ -525,8 +531,10 @@ function pollStatus(job_id) {
       } else if (d.status === 'done') {
         clearInterval(pollTimer);
         setProgress(100, 'Done.');
-        const ticker = document.getElementById('loader-ticker-label');
-        if (ticker) ticker.textContent = 'Generation finished successfully.';
+        ['loader-ticker-label', 'bottom-loader-ticker-label'].forEach(id => {
+          const ticker = document.getElementById(id);
+          if (ticker) ticker.textContent = 'Generation finished successfully.';
+        });
         
         // Play notification chime if enabled
         const soundEnabled = document.getElementById('export-sound') ? document.getElementById('export-sound').checked : true;
