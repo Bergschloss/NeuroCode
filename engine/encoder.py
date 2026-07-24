@@ -1,5 +1,6 @@
 import gc
 import os
+from pathlib import Path
 import numpy as np
 import soundfile as sf
 import miniaudio
@@ -413,6 +414,60 @@ def generate_binaural_beat(beat_type: str, length_samples: int, sr: int, volume_
     
     beat = np.column_stack((left_signal, right_signal)) * linear_vol
     return beat.astype(np.float32)
+
+
+def _apply_tpdf_dither(audio: np.ndarray) -> np.ndarray:
+    """
+    Apply Triangular Probability Density Function (TPDF) dither to 32-bit float audio array.
+    Eliminates quantization distortion down to -96 dB.
+    """
+    scale = 32768.0
+    rng = np.random.default_rng()
+    tpdf = (
+        rng.uniform(-0.5, 0.5, size=audio.shape)
+        + rng.uniform(-0.5, 0.5, size=audio.shape)
+    ) / scale
+    return np.clip(audio + tpdf, -1.0, 1.0)
+
+
+def _write_audio_file(output_path: str, audio: np.ndarray, sr: int = 44100) -> None:
+    """
+    Write audio file supporting MP3 (320k Full Stereo, 20k cutoff, TPDF dithered),
+    FLAC (Lossless), and WAV.
+    """
+    import subprocess
+    import tempfile
+    import uuid
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    dithered = _apply_tpdf_dither(audio)
+    ext = path.suffix.lower()
+
+    if ext == ".flac":
+        sf.write(str(path), dithered, sr, format="FLAC")
+    elif ext == ".mp3":
+        temp_wav = Path(tempfile.gettempdir()) / f"ncs_temp_{uuid.uuid4().hex[:6]}.wav"
+        try:
+            sf.write(str(temp_wav), dithered, sr, subtype="PCM_16")
+            cmd = [
+                "ffmpeg", "-y", "-i", str(temp_wav),
+                "-c:a", "libmp3lame",
+                "-b:a", "320k",
+                "-joint_stereo", "0",
+                "-cutoff", "20000",
+                str(path)
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode != 0:
+                sf.write(str(path), dithered, sr, format="MP3")
+        except Exception:
+            sf.write(str(path), dithered, sr, format="MP3")
+        finally:
+            if temp_wav.exists():
+                temp_wav.unlink(missing_ok=True)
+    else:
+        sf.write(str(path), dithered, sr, subtype="PCM_16")
 
 
 def mix_final(

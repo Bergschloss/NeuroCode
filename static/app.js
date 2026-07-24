@@ -86,9 +86,29 @@ const CC = {uk:'chip-uk', ru:'chip-ru', en:'chip-en'};
 function onInput(id) {
   const text = document.getElementById('text-'+id).value;
   const forced = document.getElementById('lang-'+id).value;
-  document.getElementById('count-'+id).textContent = text.length + ' characters';
-  const est = text.trim().length > 0 ? Math.max(2, Math.round(text.trim().length / CPS)) : 0;
-  document.getElementById('dur-'+id).textContent = est > 0 ? `≈${est}s` : '—';
+  
+  const words = text.trim() ? text.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+  const chars = text.length;
+  document.getElementById('count-'+id).textContent = `${chars} characters · ${words} words`;
+
+  const speedMinEl = document.getElementById('speed-min');
+  const speedMin = speedMinEl ? parseFloat(speedMinEl.value) : 3.0;
+  const silStartEl = document.getElementById('sil-start');
+  const silEndEl = document.getElementById('sil-end');
+  const fades = (silStartEl ? parseFloat(silStartEl.value) : 1.5) + (silEndEl ? parseFloat(silEndEl.value) : 1.5);
+
+  let estDurSec = 0;
+  let estMp3Mb = "0.00";
+  if (words > 0) {
+    const baseSpeechSec = words * 0.47;
+    estDurSec = Math.max(2, Math.round((baseSpeechSec / speedMin) + fades));
+    estMp3Mb = (estDurSec * 40 / 1024).toFixed(2);
+  }
+
+  const durEl = document.getElementById('dur-'+id);
+  if (durEl) {
+    durEl.textContent = estDurSec > 0 ? `Est. Duration: ~${estDurSec}s · Est. MP3 320k: ~${estMp3Mb} MB` : '—';
+  }
   
   const preview = document.getElementById('preview-'+id);
   if (!preview) return;
