@@ -62,7 +62,10 @@ class JobStore:
             if not job or not event or job["status"] in {"done", "error", "cancelled"}:
                 return False
             event.set()
-            job.update(status="cancelling", updated_at=time.time())
+            if job.get("status") == "queued":
+                job.update(status="cancelled", updated_at=time.time())
+            else:
+                job.update(status="cancelling", updated_at=time.time())
             return True
 
     def raise_if_cancelled(self, job_id: str) -> None:

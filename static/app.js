@@ -464,8 +464,10 @@ function playBellSound() {
   }
 }
 
+let cancellingPollCount = 0;
 function pollStatus(job_id) {
   clearInterval(pollTimer);
+  cancellingPollCount = 0;
   pollTimer = setInterval(async () => {
     try {
       const d = await fetch('/status/'+job_id).then(r=>r.json());
@@ -483,12 +485,19 @@ function pollStatus(job_id) {
       if (d.status === 'queued') {
         setProgress(0, 'Queued — waiting for the active generation...');
       } else if (d.status === 'cancelling') {
-        setProgress(d.progress || 0, 'Cancelling safely...');
+        cancellingPollCount++;
+        if (cancellingPollCount >= 3) {
+          clearInterval(pollTimer);
+          showError('Generation cancelled.');
+          resetBtn();
+        } else {
+          setProgress(d.progress || 0, 'Cancelling safely...');
+        }
       } else if (d.status === 'processing') {
         const p = d.progress || 5;
         const msg = p < 25 ? 'Generating TTS...'
           : p < 90 ? `AM encoding layers... ${p}%`
-          : 'Normalizing and writing WAV...';
+          : 'Normalizing and writing audio...';
         setProgress(p, msg);
       } else if (d.status === 'done') {
         clearInterval(pollTimer);
@@ -619,10 +628,14 @@ function resetBtn() {
   const btn = document.getElementById('btn-gen');
   if (btn) {
     btn.disabled = false;
-    btn.innerHTML = '<span>Generate WAV</span>';
+    btn.innerHTML = '<span>Generate Audio</span>';
   }
   const cancelBtn = document.getElementById('btn-cancel');
-  if (cancelBtn) cancelBtn.style.display = 'none';
+  if (cancelBtn) {
+    cancelBtn.style.display = 'none';
+    cancelBtn.disabled = false;
+    cancelBtn.textContent = 'Cancel';
+  }
   currentJobId = null;
 }
 

@@ -433,6 +433,10 @@ async def _run(
     except Exception as exc:
         add_job_log(job_id, f"Error: {exc}")
         job_store.update(job_id, status="error", error=str(exc), progress=0)
+    finally:
+        job = job_store.get(job_id)
+        if job and job.get("status") in ("cancelling", "queued"):
+            job_store.update(job_id, status="cancelled", progress=0)
 
 
 async def _process_job(
