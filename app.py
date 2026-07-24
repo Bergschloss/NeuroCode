@@ -309,45 +309,15 @@ async def generate(
     output_raw_path = None
 
     # Encoded MP3 320k file path resolution
-    if save_enc_flag and export_filename and fname != job_id:
-        candidate = target_dir_encoded / f"{fname}.mp3"
-        if candidate.exists():
-            counter = 1
-            while True:
-                candidate = target_dir_encoded / f"{fname} ({counter}).mp3"
-                if not candidate.exists():
-                    break
-                counter += 1
-        output_path = str(candidate)
-    elif save_enc_flag:
+    if save_enc_flag:
         output_path = str(target_dir_encoded / f"{fname}.mp3")
 
     # Lossless FLAC file path resolution
-    if save_flac_flag and export_filename and fname != job_id:
-        candidate_flac = target_dir_encoded / f"{fname}.flac"
-        if candidate_flac.exists():
-            counter = 1
-            while True:
-                candidate_flac = target_dir_encoded / f"{fname} ({counter}).flac"
-                if not candidate_flac.exists():
-                    break
-                counter += 1
-        output_flac_path = str(candidate_flac)
-    elif save_flac_flag:
+    if save_flac_flag:
         output_flac_path = str(target_dir_encoded / f"{fname}.flac")
 
     # Raw file path resolution
-    if save_raw_flag and export_filename and fname != job_id:
-        candidate_raw = target_dir_raw / f"{fname}_raw.mp3"
-        if candidate_raw.exists():
-            counter = 1
-            while True:
-                candidate_raw = target_dir_raw / f"{fname} ({counter})_raw.mp3"
-                if not candidate_raw.exists():
-                    break
-                counter += 1
-        output_raw_path = str(candidate_raw)
-    elif save_raw_flag:
+    if save_raw_flag:
         output_raw_path = str(target_dir_raw / f"{fname}_raw.mp3")
 
     job_store.create(
