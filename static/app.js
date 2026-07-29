@@ -91,27 +91,6 @@ function onInput(id) {
   const chars = text.length;
   document.getElementById('count-'+id).textContent = `${chars} characters · ${words} words`;
 
-  const speedMinEl = document.getElementById('speed-min');
-  const speedMin = speedMinEl ? parseFloat(speedMinEl.value) : 3.0;
-  const silStartEl = document.getElementById('sil-start');
-  const silEndEl = document.getElementById('sil-end');
-  const fades = (silStartEl ? parseFloat(silStartEl.value) : 1.5) + (silEndEl ? parseFloat(silEndEl.value) : 1.5);
-
-  let estDurSec = 0;
-  let estMp3Mb = "0.00";
-
-  if (chars > 0 && text.trim().length > 0) {
-    estDurSec = Math.max(2, Math.round((text.trim().length / (CPS * speedMin)) + fades));
-    estMp3Mb = (estDurSec * 40 / 1024).toFixed(2);
-  }
-
-  const durEl = document.getElementById('dur-'+id);
-  if (durEl) {
-    durEl.textContent = estDurSec > 0 
-      ? `Est. Duration: ~${estDurSec}s · Est. MP3 320k: ~${estMp3Mb} MB` 
-      : '—';
-  }
-  
   const preview = document.getElementById('preview-'+id);
   if (!preview) return;
   const segs = text.trim() ? getSegments(text, forced) : [];
