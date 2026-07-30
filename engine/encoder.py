@@ -279,25 +279,29 @@ def _get_music_audio(
     notch_Q: float = 30.0,
 ) -> np.ndarray:
     """
-    Load, loop, low-pass filter (high cut @ 3kHz), optionally notch-filter, and normalize the selected music track.
+    Load, loop, optionally notch-filter, and normalize the selected music track.
     
     notch_freqs: if provided, a list of two lists [[left_freqs], [right_freqs]] specifying
                  the exact carrier frequencies to surgically remove from each channel.
     notch_Q:     Quality factor for the notch — 30 gives a very narrow (~5 Hz) notch.
     """
-    if music_type == "none":
+    if not music_type or music_type == "none":
         return np.zeros((length_samples, 2), dtype=np.float32)
 
-    # Look up the filename from MUSIC_DIR by stem name (music_type == file stem)
+    # Look up the filename from MUSIC_DIR by matching stem name
     file_path = None
-    for ext in (".mp3", ".wav"):
-        candidate = os.path.join(MUSIC_DIR, music_type + ext)
-        if os.path.exists(candidate):
-            file_path = candidate
-            break
+    if os.path.isdir(MUSIC_DIR):
+        for fname in os.listdir(MUSIC_DIR):
+            if fname.lower().endswith((".mp3", ".wav")):
+                stem = os.path.splitext(fname)[0]
+                if stem == music_type or stem.strip().lower() == music_type.strip().lower():
+                    file_path = os.path.join(MUSIC_DIR, fname)
+                    break
+
     if file_path is None:
-        print(f"[WARN] Music track not found: {music_type} in {MUSIC_DIR}")
+        print(f"[WARN] Music track not found: '{music_type}' in {MUSIC_DIR}")
         return np.zeros((length_samples, 2), dtype=np.float32)
+
     try:
         with open(file_path, "rb") as f:
             mp3_bytes = f.read()
@@ -313,27 +317,21 @@ def _get_music_audio(
         n_frames = len(music_data)
         if n_frames == 0:
             return np.zeros((length_samples, 2), dtype=np.float32)
-        music_signal = np.resize(music_data, (length_samples, 2)).astype(
-            np.float32,
-            copy=False,
-        )
-        
-        # Apply 3000 Hz low-pass filter (high cut) to protect the voice spectrum
-        cutoff = 3000.0
-        nyq = 0.5 * sr
-        normal_cutoff = cutoff / nyq
-        b_lp, a_lp = butter(4, normal_cutoff, btype='low', analog=False)
-        music_signal = lfilter(b_lp, a_lp, music_signal, axis=0).astype(np.float32)
+
+        # Tile music signal cleanly to cover target length
+        repeats = (length_samples // n_frames) + 1
+        tiled = np.tile(music_data, (repeats, 1))
+        music_signal = tiled[:length_samples].astype(np.float32, copy=False)
         
         # Optional surgical notch filter at binaural carrier frequencies
         if notch_freqs is not None:
             music_signal = _apply_notch_filters(music_signal, notch_freqs, sr, Q=notch_Q)
             print(f"[DSP] Notch filter applied: L={notch_freqs[0]} Hz, R={notch_freqs[1]} Hz, Q={notch_Q}")
         
-        # Automatic RMS normalization to ensure all music tracks have identical perceived loudness
+        # Automatic RMS normalization to ensure all music tracks have optimal perceived loudness
         rms = np.sqrt(np.mean(music_signal**2))
         if rms > 0:
-            target_rms = 0.15
+            target_rms = 0.20
             music_signal = music_signal * (target_rms / rms)
         
         # Prevent clipping by peak-limiting to 1.0 if the scaled signal exceeds 1.0
@@ -343,7 +341,7 @@ def _get_music_audio(
             
         return music_signal
     except Exception as e:
-        print(f"[ERROR] Failed to load or process music track {music_type}: {e}")
+        print(f"[ERROR] Failed to load or process music track '{music_type}': {e}")
         return np.zeros((length_samples, 2), dtype=np.float32)
 
 
