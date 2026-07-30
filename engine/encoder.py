@@ -323,22 +323,15 @@ def _get_music_audio(
         tiled = np.tile(music_data, (repeats, 1))
         music_signal = tiled[:length_samples].astype(np.float32, copy=False)
         
-        # Apply 3000 Hz low-pass filter (high cut) to protect the subliminal voice carrier spectrum (3000 Hz - 17500 Hz)
-        cutoff = 3000.0
-        nyq = 0.5 * sr
-        normal_cutoff = cutoff / nyq
-        b_lp, a_lp = butter(4, normal_cutoff, btype='low', analog=False)
-        music_signal = lfilter(b_lp, a_lp, music_signal, axis=0).astype(np.float32)
-
         # Optional surgical notch filter at binaural carrier frequencies
         if notch_freqs is not None:
             music_signal = _apply_notch_filters(music_signal, notch_freqs, sr, Q=notch_Q)
             print(f"[DSP] Notch filter applied: L={notch_freqs[0]} Hz, R={notch_freqs[1]} Hz, Q={notch_Q}")
         
-        # Automatic RMS normalization to ensure all music tracks have identical perceived loudness
+        # Automatic RMS normalization to ensure all music tracks have optimal perceived loudness
         rms = np.sqrt(np.mean(music_signal**2))
         if rms > 0:
-            target_rms = 0.15
+            target_rms = 0.20
             music_signal = music_signal * (target_rms / rms)
         
         # Prevent clipping by peak-limiting to 1.0 if the scaled signal exceeds 1.0
