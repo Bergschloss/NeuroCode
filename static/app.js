@@ -190,6 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const voiceVolInput = document.getElementById('voice-volume');
     if (voiceVolInput) voiceVolInput.value = savedVoiceVol;
   }
+  const savedMonoVoice = localStorage.getItem('ncs_mono_voice');
+  if (savedMonoVoice !== null) {
+    const monoInput = document.getElementById('mono-voice');
+    if (monoInput) monoInput.checked = (savedMonoVoice === 'true');
+  }
 
   // Save to localStorage on input modification
   const dirInputEl = document.getElementById('export-dir');
@@ -229,23 +234,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const tgEnabled = document.getElementById('tg-enabled');
-  if (tgEnabled) {
-    tgEnabled.addEventListener('change', () => {
-      toggleTgFields();
-      saveTelegramConfig();
+  updateMonoHint();
+  const monoVoiceInput = document.getElementById('mono-voice');
+  if (monoVoiceInput) {
+    monoVoiceInput.addEventListener('change', (e) => {
+      updateMonoHint();
+      localStorage.setItem('ncs_mono_voice', e.target.checked);
     });
   }
-  const tgToken = document.getElementById('tg-token');
-  if (tgToken) {
-    tgToken.addEventListener('input', saveTelegramConfig);
-  }
-  const tgChatId = document.getElementById('tg-chat-id');
-  if (tgChatId) {
-    tgChatId.addEventListener('input', saveTelegramConfig);
-  }
 
-  loadTelegramConfig();
   updateLoaderVisibility();
   renderActiveLoader(0, 'STANDBY');
 
@@ -335,6 +332,22 @@ function updateNotchDesc() {
 updateNotchDesc();
 document.getElementById('binaural-type').addEventListener('change', updateNotchDesc);
 
+function updateMonoHint() {
+  const box = document.getElementById('mono-voice');
+  const hint = document.getElementById('mono-voice-hint');
+  if (!box || !hint) return;
+  const layers = parseInt(document.getElementById('layers').value, 10) || 8;
+  hint.textContent = box.checked
+    ? `· ${Math.max(2, Math.floor(layers / 2))} mono layers`
+    : '· stereo grid';
+}
+
+function sync(el, targetId, suffix='') {
+  const t = document.getElementById(targetId);
+  if (t) t.textContent = el.value + suffix;
+  el.style.setProperty('--pct', ((el.value-el.min)/(el.max-el.min)*100)+'%');
+}
+
 async function generate() {
   const main = document.getElementById('text-main').value.trim();
   if (!main) { alert('Affirmation text is required'); return; }
@@ -360,8 +373,6 @@ async function generate() {
   document.getElementById('prog-wrap').style.display = 'block';
   const successWrap = document.getElementById('success-wrap');
   if (successWrap) successWrap.style.display = 'none';
-  const tgWrap = document.getElementById('tg-upload-wrap');
-  if (tgWrap) tgWrap.style.display = 'none';
   document.getElementById('err-txt').style.display = 'none';
   setProgress(5, 'Sending request...');
 
@@ -382,15 +393,13 @@ async function generate() {
   fd.append('music_type',       document.getElementById('music-type').value);
   fd.append('music_volume',     document.getElementById('music-volume').value);
   fd.append('music_notch_enabled', document.getElementById('notch-toggle').checked ? 'true' : 'false');
+  fd.append('mono_voice',       document.getElementById('mono-voice').checked ? 'true' : 'false');
   const autosaveFlac = document.getElementById('export-autosave-flac') ? document.getElementById('export-autosave-flac').checked : false;
   fd.append('export_filename', document.getElementById('export-filename').value.trim());
   fd.append('export_dir',      exportDir);
   fd.append('save_encoded',    autosaveEncoded ? 'true' : 'false');
   fd.append('save_flac',       autosaveFlac ? 'true' : 'false');
   fd.append('save_raw',        autosaveRaw ? 'true' : 'false');
-  fd.append('tg_enabled',      document.getElementById('tg-enabled').checked ? 'true' : 'false');
-  fd.append('tg_token',        document.getElementById('tg-token').value.trim());
-  fd.append('tg_chat_id',      document.getElementById('tg-chat-id').value.trim());
 
   try {
     const response = await fetch('/generate', {method:'POST', body:fd});
@@ -466,7 +475,6 @@ function pollStatus(job_id) {
           const ticker = document.getElementById(id);
           if (ticker) ticker.textContent = latestLog;
         });
-        updateTelegramUploadProgress(d.logs);
       }
       
       if (d.status === 'queued') {
@@ -573,34 +581,6 @@ async function showDownload(job_id) {
       w.style.display = 'block';
       w.scrollIntoView({behavior:'smooth'});
     }
-
-    const tgEnabled = document.getElementById('tg-enabled') ? document.getElementById('tg-enabled').checked : true;
-    if (tgEnabled && encodedPath && encodedPath !== '-') {
-      const fd = new FormData();
-      fd.append('file_path', encodedPath);
-      fd.append('username', 'ricardo_la_retardo');
-      fetch('/open_in_telegram', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(res => {
-          const tgWrap = document.getElementById('tg-upload-wrap');
-          const tgStatusText = document.getElementById('tg-upload-status-text');
-          const tgBadge = document.getElementById('tg-upload-badge');
-          const tgFill = document.getElementById('tg-upload-fill');
-          if (tgWrap && tgStatusText && tgBadge && tgFill) {
-            tgWrap.style.display = 'block';
-            tgStatusText.textContent = '⚡️ Auto-sending file to Telegram Desktop chat @ricardo_la_retardo...';
-            tgBadge.textContent = 'AUTO-SENDING';
-            tgBadge.style.background = 'rgba(0, 204, 136, 0.15)';
-            tgBadge.style.color = '#00cc88';
-            tgWrap.style.borderColor = 'rgba(0, 204, 136, 0.25)';
-            tgWrap.style.background = 'rgba(0, 204, 136, 0.04)';
-            tgFill.classList.remove('tg-upload-animated-bar');
-            tgFill.style.width = '100%';
-            tgFill.style.background = '#00cc88';
-          }
-        })
-        .catch(err => console.warn('Failed to open in Telegram Desktop:', err));
-    }
   } catch (e) {
     console.error("Error displaying success paths:", e);
   }
@@ -647,152 +627,6 @@ async function cancelGeneration() {
       btn.disabled = false;
       btn.textContent = 'Cancel';
     }
-  }
-}
-
-/* ===== Telegram Bot Configuration and Testing ===== */
-async function loadTelegramConfig() {
-  try {
-    const res = await fetch('/telegram_config').then(r => r.json());
-    if (res) {
-      const enabledEl = document.getElementById('tg-enabled');
-      const tokenEl = document.getElementById('tg-token');
-      const chatIdEl = document.getElementById('tg-chat-id');
-      
-      if (enabledEl) enabledEl.checked = res.enabled || false;
-      if (tokenEl) {
-        tokenEl.value = res.token || '';
-        tokenEl.placeholder = 'Enter Telegram Bot Token';
-      }
-      if (chatIdEl) chatIdEl.value = res.chat_id || '';
-      
-      toggleTgFields();
-    }
-  } catch (e) {
-    console.warn('Could not load Telegram config from server:', e);
-    const savedEnabled = localStorage.getItem('ncs_tg_enabled');
-    const savedChatId = localStorage.getItem('ncs_tg_chat_id');
-    if (savedEnabled !== null) document.getElementById('tg-enabled').checked = (savedEnabled === 'true');
-    if (savedChatId !== null) document.getElementById('tg-chat-id').value = savedChatId;
-    toggleTgFields();
-  }
-}
-
-function saveTelegramConfig() {
-  const enabled = document.getElementById('tg-enabled').checked;
-  const token = document.getElementById('tg-token').value.trim();
-  const chat_id = document.getElementById('tg-chat-id').value.trim();
-  
-  localStorage.setItem('ncs_tg_enabled', enabled);
-  localStorage.setItem('ncs_tg_chat_id', chat_id);
-  
-  const fd = new FormData();
-  fd.append('enabled', enabled ? 'true' : 'false');
-  fd.append('token', token);
-  fd.append('chat_id', chat_id);
-  
-  fetch('/telegram_config', { method: 'POST', body: fd }).catch(err => console.warn("Failed to persist TG config:", err));
-}
-
-function toggleTgFields() {
-  const enabled = document.getElementById('tg-enabled').checked;
-  const block = document.getElementById('tg-fields-block');
-  if (block) {
-    block.style.display = enabled ? 'block' : 'none';
-  }
-}
-
-async function openTelegramHelper(handle) {
-  const allowed = new Set(['BotFather', 'userinfobot']);
-  if (!allowed.has(handle)) return;
-  const url = `https://t.me/${handle}`;
-  if (window.pywebview && window.pywebview.api && window.pywebview.api.open_external) {
-    await window.pywebview.api.open_external(url);
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-}
-
-async function testTelegramConnection() {
-  const btn = document.getElementById('btn-tg-test');
-  const token = document.getElementById('tg-token').value.trim();
-  const chat_id = document.getElementById('tg-chat-id').value.trim();
-  
-  if (!token || !chat_id) {
-    alert('Please enter both Bot Token and Chat ID to run a test.');
-    return;
-  }
-  
-  btn.disabled = true;
-  btn.textContent = 'Testing...';
-  
-  const fd = new FormData();
-  fd.append('token', token);
-  fd.append('chat_id', chat_id);
-  
-  try {
-    const res = await fetch('/telegram_test', { method: 'POST', body: fd }).then(r => r.json());
-    if (res.status === 'success') {
-      alert('Success! A test message was sent to your Telegram chat.');
-      saveTelegramConfig();
-    } else {
-      alert('Telegram Test Failed:\n' + (res.error || 'Unknown error'));
-    }
-  } catch (e) {
-    alert('Request failed: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Test Send';
-  }
-}
-
-function updateTelegramUploadProgress(logs) {
-  if (!logs || logs.length === 0) return;
-  
-  const tgWrap = document.getElementById('tg-upload-wrap');
-  const tgStatusText = document.getElementById('tg-upload-status-text');
-  const tgBadge = document.getElementById('tg-upload-badge');
-  const tgFill = document.getElementById('tg-upload-fill');
-  
-  if (!tgWrap || !tgStatusText || !tgBadge || !tgFill) return;
-
-  const tgLogs = logs.filter(l => l.includes('Telegram') || l.includes('Sending Encoded WAV') || l.includes('Sending Raw Voice'));
-  if (tgLogs.length === 0) return;
-
-  tgWrap.style.display = 'block';
-  const latest = tgLogs[tgLogs.length - 1];
-
-  if (latest.includes('successfully sent') || latest.includes('Sent to Telegram') || latest.includes('successfully sent to Telegram')) {
-    tgStatusText.textContent = '✓ Audio delivered to Telegram Bot!';
-    tgBadge.textContent = 'SENT';
-    tgBadge.style.background = 'rgba(0, 204, 136, 0.15)';
-    tgBadge.style.color = '#00cc88';
-    tgWrap.style.borderColor = 'rgba(0, 204, 136, 0.25)';
-    tgWrap.style.background = 'rgba(0, 204, 136, 0.04)';
-    tgFill.classList.remove('tg-upload-animated-bar');
-    tgFill.style.width = '100%';
-    tgFill.style.background = '#00cc88';
-  } else if (latest.includes('failed') || latest.includes('Error')) {
-    tgStatusText.textContent = latest;
-    tgBadge.textContent = 'ERROR';
-    tgBadge.style.background = 'rgba(255, 68, 68, 0.15)';
-    tgBadge.style.color = '#ff4444';
-    tgWrap.style.borderColor = 'rgba(255, 68, 68, 0.25)';
-    tgWrap.style.background = 'rgba(255, 68, 68, 0.04)';
-    tgFill.classList.remove('tg-upload-animated-bar');
-    tgFill.style.width = '100%';
-    tgFill.style.background = '#ff4444';
-  } else {
-    tgStatusText.textContent = latest;
-    tgBadge.textContent = 'UPLOADING';
-    tgBadge.style.background = 'rgba(0, 136, 204, 0.15)';
-    tgBadge.style.color = '#0088cc';
-    tgWrap.style.borderColor = 'rgba(0, 136, 204, 0.25)';
-    tgWrap.style.background = 'rgba(0, 136, 204, 0.04)';
-    if (!tgFill.classList.contains('tg-upload-animated-bar')) {
-      tgFill.classList.add('tg-upload-animated-bar');
-    }
-    tgFill.style.background = '#0088cc';
   }
 }
 

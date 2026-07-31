@@ -17,8 +17,8 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 - **Optimized Multi-Layering (4–16 Layers, Default 8)**: Supports dense psychoacoustic stacking of up to 16 parallel voice layers (default 8) with randomized speed ($\pm 0.05\text{x}$) and frequency jitters ($\pm 150\text{ Hz}$) to eliminate phantom mono images and create a wide, diffuse subliminal field.
 - **TPDF Dithered MP3 320 kbps Export**: Default export to **320 kbps Full Stereo MP3** (20 kHz cutoff) with **Triangular Probability Density Function (TPDF) Dithering**, eliminating low-level quantization distortion down to -96 dB while reducing file size by 80%.
 - **Optional Lossless FLAC Export**: Bit-for-bit lossless **44.1 kHz / 16-bit / Stereo FLAC** export option for audiophile archival.
+- **Mono Voice Mode (optional)**: A selectable encoding mode that renders the voice as a single carrier grid written bit-identically to both channels, at half the layer count, for playback on loudspeakers rather than headphones. Binaural beats, background music, and the stereo output format are unaffected. The default symmetrical stereo grid remains unchanged.
 - **Live Word Count & File Size Prediction**: Real-time counter under affirmation text box displaying character count, word count, estimated audio duration ($\text{seconds}$), and estimated MP3 file size ($\text{MB}$).
-- **Automatic Telegram Desktop Delivery**: 1-click hands-free delivery of generated audio files directly to Telegram Desktop.
 - **Configurable Speed Range**: Asynchronous layer speech stretching randomized across user-selected range (e.g. 3.0x – 4.0x).
 - **Brainwave Entrainment (Binaural Beats)**: Generates precise binaural frequencies to stimulate targeted mental states:
   - **Turbo-Manipura**: Triple Solfeggio carrier blend (126.22 Hz + 330 Hz + 528 Hz).
@@ -77,7 +77,7 @@ The entire application runs as a standalone desktop suite (using `pywebview` and
 The encoder low-pass filters speech to 3.5 kHz and modulates it onto sine carriers ranging from 3 kHz to 17.5 kHz. The band limit prevents upper AM sidebands from folding across the 22.05 kHz Nyquist boundary.
 
 ### 2. Symmetrical Stereo Grid & TPDF Dithering
-Both left and right channels contain carrier grids from 3000 Hz to 17500 Hz. Triangular Probability Density Function (TPDF) dithering is applied prior to 16-bit PCM and MP3 encoding to preserve linear signal fidelity down to -96 dB.
+By default, both left and right channels contain symmetrical carrier grids from 3000 Hz to 17500 Hz. Mono mode optionally replaces this with a single grid written to both channels. Triangular Probability Density Function (TPDF) dithering is applied prior to 16-bit PCM and MP3 encoding to preserve linear signal fidelity down to -96 dB.
 
 ### 3. Surgical Notch Filtering
 When enabled, background music receives narrow notch cuts at selected binaural carrier frequencies, reducing competing energy at those frequencies.
@@ -90,7 +90,6 @@ When enabled, background music receives narrow notch cuts at selected binaural c
 SubliminalGenerator/
 ├── app.py                     # FastAPI backend, webview initializer, & endpoint routing
 ├── job_state.py               # Job registry, thread safety, cancellation, and TTS LRU cache
-├── telegram_client.py         # Telegram HTTP API integration & Desktop automation
 ├── test_contracts.py          # DSP & API contract tests (44.1 kHz, volume limits, format checks)
 ├── run.bat                    # Launcher script with auto-dependency verification
 ├── requirements.txt           # Python package dependencies

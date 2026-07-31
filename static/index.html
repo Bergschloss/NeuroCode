@@ -89,60 +89,6 @@
     </div>
   </div>
 
-  <!-- TELEGRAM EXPORT -->
-  <section class="section telegram-section">
-    <header class="section-head">
-      <div class="section-title">Telegram Bot Integration</div>
-      <div class="section-meta">Auto-Upload & Alerts</div>
-    </header>
-
-    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
-      <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted);">
-        <input type="checkbox" id="tg-enabled" checked style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;" onchange="toggleTgFields()"/>
-        <span>Enable Telegram Upload on Completion</span>
-      </label>
-    </div>
-
-    <div id="tg-fields-block" style="display: none; transition: opacity 0.3s ease;">
-      <div class="grid-two-cols telegram-fields-grid">
-        <div class="field">
-          <div class="field-label">Bot Token</div>
-          <div class="field-body">
-            <input class="telegram-token-input" type="text" id="tg-token" placeholder="Enter Telegram Bot Token" autocomplete="off" spellcheck="false"/>
-            <button class="telegram-helper" type="button" onclick="openTelegramHelper('BotFather')" aria-label="Open BotFather in Telegram">
-              <span class="telegram-helper-dot" aria-hidden="true"></span>
-              <svg class="telegram-helper-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M21.4 3.4 18.2 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9-8.1c.4-.4-.1-.6-.6-.2L5.8 12.8 1 11.3c-1-.3-1-1 .2-1.5L20 2.6c.9-.3 1.7.2 1.4.8Z"/>
-              </svg>
-              <span>@BotFather</span>
-              <span class="telegram-helper-arrow" aria-hidden="true">↗</span>
-            </button>
-            <div class="help-block">HTTP API Token from @BotFather (e.g. 123456789:ABCDefGh...).</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-label">Chat ID / User ID</div>
-          <div class="field-body">
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="text" id="tg-chat-id" placeholder="Enter Telegram Chat ID" style="flex: 1; font-family: monospace;"/>
-              <button class="loader-settings-btn" id="btn-tg-test" style="height: 38px; padding: 0 16px; margin: 0; white-space: nowrap;" onclick="testTelegramConnection()">Test Send</button>
-            </div>
-            <button class="telegram-helper" type="button" onclick="openTelegramHelper('userinfobot')" aria-label="Open userinfobot in Telegram">
-              <span class="telegram-helper-dot" aria-hidden="true"></span>
-              <svg class="telegram-helper-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M21.4 3.4 18.2 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9-8.1c.4-.4-.1-.6-.6-.2L5.8 12.8 1 11.3c-1-.3-1-1 .2-1.5L20 2.6c.9-.3 1.7.2 1.4.8Z"/>
-              </svg>
-              <span>@userinfobot</span>
-              <span class="telegram-helper-arrow" aria-hidden="true">↗</span>
-            </button>
-            <div class="help-block">Your personal Telegram User ID (e.g. 123456789). Do NOT enter the bot's ID. Use @userinfobot to find your ID.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- SECTION 01 — TEXT INPUT -->
   <section class="section">
     <header class="section-head">
@@ -230,11 +176,15 @@
         <div class="slider-block" id="layers-slider-block">
           <div class="slider-meta"><span class="desc">04 ── 16 · step 2</span><span class="v" id="lbl-layers">8</span></div>
           <div class="slider-track">
-            <input type="range" id="layers" min="4" max="16" step="2" value="8" oninput="sync(this,'lbl-layers')"/>
+            <input type="range" id="layers" min="4" max="16" step="2" value="8" oninput="sync(this,'lbl-layers'); updateMonoHint();"/>
           </div>
           <div class="slider-ticks"><span>04</span><span>06</span><span>08</span><span>10</span><span>12</span><span>14</span><span>16</span></div>
         </div>
-        <div class="help-block">The number of parallel layers of AM-modulated speech to build psychoacoustic density. More layers create a thicker chorus effect but require more processing time.</div>
+        <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted); margin-top: 12px;">
+          <input type="checkbox" id="mono-voice" style="width: 16px; height: 16px; accent-color: var(--accent-light); cursor: pointer;"/>
+          <span>Mono Voice <span id="mono-voice-hint" style="opacity:.6"></span></span>
+        </label>
+        <div class="help-block">The number of parallel layers of AM-modulated speech to build psychoacoustic density. More layers create a thicker chorus effect but require more processing time. <strong>Mono Voice</strong> is an optional mode that encodes the voice as a single carrier grid, identical in both channels, at half the layer count — intended for loudspeaker playback. Binaural beats and background music stay in stereo.</div>
       </div>
     </div>
 
@@ -511,19 +461,7 @@
 
   <div class="error-text" id="err-txt"></div>
 
-  <!-- TELEGRAM UPLOADING STATUS WIDGET -->
-  <div id="tg-upload-wrap" style="display: none; margin-top: 16px; padding: 16px 20px; border: 1px solid rgba(0, 136, 204, 0.25); border-radius: 8px; background: rgba(0, 136, 204, 0.04); transition: all 0.3s ease;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <div style="display: flex; align-items: center; gap: 10px; font-family: 'Space Mono', monospace; font-size: 12px; color: #0088cc; font-weight: 600;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;"><path d="M21.4 3.4 18.2 19c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9-8.1c.4-.4-.1-.6-.6-.2L5.8 12.8 1 11.3c-1-.3-1-1 .2-1.5L20 2.6c.9-.3 1.7.2 1.4.8Z"/></svg>
-        <span id="tg-upload-status-text">Uploading audio to Telegram Bot...</span>
-      </div>
-      <span id="tg-upload-badge" style="font-size: 10px; font-weight: 700; font-family: 'Space Mono', monospace; padding: 3px 8px; border-radius: 4px; background: rgba(0, 136, 204, 0.15); color: #0088cc; letter-spacing: 0.5px;">UPLOADING</span>
-    </div>
-    <div style="height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; position: relative;">
-      <div id="tg-upload-fill" class="tg-upload-animated-bar" style="height: 100%; width: 40%; background: #0088cc; border-radius: 2px; position: absolute;"></div>
-    </div>
-  </div>
+
 
   <!-- SUCCESS NOTIFICATION -->
   <div class="success-wrap" id="success-wrap" style="display: none; text-align: center; padding: 24px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.01); margin-top: 20px;">

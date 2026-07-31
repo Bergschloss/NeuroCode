@@ -12,12 +12,6 @@ from fastapi.staticfiles import StaticFiles
 from engine.encoder import mix_final, get_music_tracks
 from engine.tts import TARGET_SR, generate_tts_multilang
 from job_state import GenerationCancelled, JobStore, TtsCache
-from telegram_client import (
-    load_config as load_telegram_config,
-    save_config as save_telegram_config_file,
-    send_document as send_telegram_document,
-    test_connection as test_telegram_connection,
-)
 
 app = FastAPI(title="Neurocode Studio")
 
@@ -51,93 +45,7 @@ def generate_auto_filename(text: str, music_type: str) -> str:
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
 
-@app.get("/telegram_config")
-async def get_telegram_config():
-    config = load_telegram_config()
-    return {
-        "enabled": config["enabled"],
-        "configured": bool(config["token"] and config["chat_id"]),
-        "token": config["token"],
-        "chat_id": config["chat_id"],
-    }
 
-@app.post("/telegram_config")
-async def save_telegram_config(
-    enabled: str = Form("false"),
-    token: str = Form(""),
-    chat_id: str = Form(""),
-):
-    enabled_bool = enabled.lower() in ("true", "1", "yes", "on")
-    try:
-        save_telegram_config_file(enabled_bool, token, chat_id)
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save telegram config: {e}")
-
-@app.post("/telegram_test")
-async def test_telegram_config(
-    token: str = Form(...),
-    chat_id: str = Form(...),
-):
-    try:
-        configured = load_telegram_config()
-        res = test_telegram_connection(
-            token.strip() or configured["token"],
-            chat_id.strip() or configured["chat_id"],
-        )
-        if res.get("ok"):
-            return {"status": "success"}
-        else:
-            return {"status": "error", "error": res.get("description", "Unknown Telegram API error")}
-    except Exception as e:
-        return {"status": "error", "error": str(e)}
-
-@app.post("/open_in_telegram")
-async def open_in_telegram(
-    file_path: str = Form(...),
-    username: str = Form("ricardo_la_retardo"),
-    auto_send: str = Form("true"),
-):
-    import subprocess
-    import tempfile
-    try:
-        path = Path(file_path).resolve()
-        if not path.exists():
-            raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
-
-        clean_user = username.strip().replace("@", "")
-        tg_url = f"tg://resolve?domain={clean_user}" if clean_user else "tg://openmessage"
-
-        try:
-            ps_cmd = f"Set-Clipboard -Path '{path}'"
-            subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True)
-        except Exception as e:
-            print(f"[CLIPBOARD ERROR] {e}")
-
-        try:
-            os.startfile(tg_url)
-        except Exception as e:
-            print(f"[TG OPEN ERROR] {e}")
-
-        do_auto = auto_send.lower() in ("true", "1", "yes", "on")
-        if do_auto:
-            vbs_code = """
-Set WshShell = WScript.CreateObject("WScript.Shell")
-WScript.Sleep 800
-WshShell.SendKeys "^v"
-WScript.Sleep 600
-WshShell.SendKeys "{ENTER}"
-"""
-            vbs_path = Path(tempfile.gettempdir()) / "ncs_tg_auto_send.vbs"
-            try:
-                vbs_path.write_text(vbs_code, encoding="utf-8")
-                subprocess.Popen(["cscript", "//Nologo", str(vbs_path)])
-            except Exception as e:
-                print(f"[SENDKEYS ERROR] {e}")
-
-        return {"status": "success", "message": "Automatically sent file via Telegram Desktop"}
-    except Exception as exc:
-        return {"status": "error", "error": str(exc)}
 
 job_store = JobStore()
 tts_cache = TtsCache()
@@ -236,6 +144,7 @@ async def generate(
     music_type: str = Form("none"),
     music_volume: float = Form(-4.0),
     music_notch_enabled: str = Form("false"),
+    mono_voice: str = Form("false"),
     client_session_id: str = Form(None),
     export_filename: str = Form(None),
     export_dir: str = Form(None),
@@ -243,9 +152,6 @@ async def generate(
     save_flac: str = Form("false"),
     save_raw: str = Form("false"),
     voice_volume: float = Form(-2.0),
-    tg_enabled: str = Form("true"),
-    tg_token: str = Form(""),
-    tg_chat_id: str = Form(""),
 ):
     if not export_dir or not export_dir.strip():
         raise HTTPException(status_code=400, detail="Output directory is required")
@@ -256,7 +162,8 @@ async def generate(
     save_enc_flag = save_encoded.lower() in ("true", "1", "yes", "on")
     save_flac_flag = save_flac.lower() in ("true", "1", "yes", "on")
     save_raw_flag = save_raw.lower() in ("true", "1", "yes", "on")
-    tg_enabled_flag = tg_enabled.lower() in ("true", "1", "yes", "on")
+    mono_flag = mono_voice.lower() in ("true", "1", "yes", "on")
+
     validate_generation_params(
         text_main=text_main,
         layers=layers,
@@ -310,11 +217,13 @@ async def generate(
 
     # Encoded MP3 320k file path resolution
     if save_enc_flag:
-        output_path = str(target_dir_encoded / f"{fname}.mp3")
+        fname_enc = f"{fname}_mono.mp3" if mono_flag else f"{fname}.mp3"
+        output_path = str(target_dir_encoded / fname_enc)
 
     # Lossless FLAC file path resolution
     if save_flac_flag:
-        output_flac_path = str(target_dir_encoded / f"{fname}.flac")
+        fname_flac = f"{fname}_mono.flac" if mono_flag else f"{fname}.flac"
+        output_flac_path = str(target_dir_encoded / fname_flac)
 
     # Raw file path resolution
     if save_raw_flag:
@@ -342,11 +251,9 @@ async def generate(
         output_path, output_raw_path, output_flac_path,
         client_session_id,
         voice_volume,
-        tg_enabled_flag,
-        tg_token.strip() or load_telegram_config()["token"],
-        tg_chat_id.strip() or load_telegram_config()["chat_id"],
         save_enc_flag,
         save_raw_flag,
+        mono_flag,
     )
     return {"job_id": job_id}
 
@@ -372,12 +279,10 @@ async def _run(
     music_notch_enabled,
     out, out_raw, out_flac=None,
     client_session_id=None,
-    voice_volume=0.0,
-    tg_enabled=False,
-    tg_token="",
-    tg_chat_id="",
+    voice_volume=-2.0,
     save_enc_flag=True,
     save_raw_flag=False,
+    mono_voice=False,
 ):
     try:
         add_job_log(job_id, "Queued for generation...")
@@ -391,8 +296,8 @@ async def _run(
                 binaural_type, binaural_volume,
                 music_type, music_volume, music_notch_enabled,
                 out, out_raw, out_flac, client_session_id, voice_volume,
-                tg_enabled, tg_token, tg_chat_id,
                 save_enc_flag, save_raw_flag,
+                mono_voice,
             )
     except GenerationCancelled:
         add_job_log(job_id, "Generation cancelled.")
@@ -422,11 +327,9 @@ async def _process_job(
     out, out_raw, out_flac,
     client_session_id,
     voice_volume,
-    tg_enabled,
-    tg_token,
-    tg_chat_id,
     save_enc_flag,
     save_raw_flag,
+    mono_voice=False,
 ):
         add_job_log(job_id, "Initializing generation session...")
         sr = TARGET_SR
@@ -478,48 +381,12 @@ async def _process_job(
             log_cb,
             voice_volume,
             lambda: job_store.raise_if_cancelled(job_id),
+            mono_voice,
         )
 
         job_store.update(job_id, status="done", progress=100)
         add_job_log(job_id, "Generation session completed successfully.")
 
-        # Telegram upload
-        if tg_enabled and tg_token and tg_chat_id:
-            add_job_log(job_id, "Uploading generated files to Telegram...")
-            
-            # Encoded file
-            if save_enc_flag and out and os.path.exists(out):
-                add_job_log(job_id, f"Sending Encoded MP3 320k to Telegram bot ({os.path.basename(out)})...")
-                res = await loop.run_in_executor(
-                    None,
-                    send_telegram_document,
-                    tg_token,
-                    tg_chat_id,
-                    out,
-                    f"⚡️ *Neurocode Studio* - Encoded WAV\n\n*Affirmation:* {text_main[:120]}...\n*Preset:* {binaural_type}"
-                )
-                if res.get("ok"):
-                    add_job_log(job_id, "Encoded WAV successfully sent to Telegram!")
-                else:
-                    err_msg = res.get("error") or res.get("description") or "Unknown error"
-                    add_job_log(job_id, f"Telegram upload failed: {err_msg}")
-                    
-            # Raw file
-            if save_raw_flag and out_raw and os.path.exists(out_raw):
-                add_job_log(job_id, f"Sending Raw Voice to Telegram bot ({os.path.basename(out_raw)})...")
-                res = await loop.run_in_executor(
-                    None,
-                    send_telegram_document,
-                    tg_token,
-                    tg_chat_id,
-                    out_raw,
-                    f"⚡️ *Neurocode Studio* - Raw Voice\n\n*Affirmation:* {text_main[:120]}..."
-                )
-                if res.get("ok"):
-                    add_job_log(job_id, "Raw Voice successfully sent to Telegram!")
-                else:
-                    err_msg = res.get("error") or res.get("description") or "Unknown error"
-                    add_job_log(job_id, f"Telegram upload failed: {err_msg}")
 @app.get("/status/{job_id}")
 async def status(job_id: str):
     return job_store.get(job_id) or {"status": "not_found"}

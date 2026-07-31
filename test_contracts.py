@@ -137,3 +137,59 @@ def test_tts_cache_is_lru_and_bounded():
     cache.put(("c",), (np.zeros(4, dtype=np.float32), TARGET_SR))
     assert cache.get(("b",)) is None
     assert cache.get(("a",)) is not None
+
+
+def test_mono_voice_writes_identical_channels():
+    t = np.arange(TARGET_SR // 2, dtype=np.float32) / TARGET_SR
+    audio = np.sin(2 * np.pi * 900 * t).astype(np.float32)
+
+    encoded = encode_multilayer(audio, TARGET_SR, 8, 2.0, 3.0, mono=True)
+
+    assert encoded.shape[1] == 2
+    assert np.array_equal(encoded[:, 0], encoded[:, 1])
+
+
+def test_stereo_voice_keeps_channels_independent():
+    t = np.arange(TARGET_SR // 2, dtype=np.float32) / TARGET_SR
+    audio = np.sin(2 * np.pi * 900 * t).astype(np.float32)
+
+    encoded = encode_multilayer(audio, TARGET_SR, 8, 2.0, 3.0, mono=False)
+
+    assert not np.array_equal(encoded[:, 0], encoded[:, 1])
+
+
+def test_mono_voice_halves_the_layer_count():
+    t = np.arange(TARGET_SR // 4, dtype=np.float32) / TARGET_SR
+    audio = np.sin(2 * np.pi * 900 * t).astype(np.float32)
+    logs = []
+
+    encode_multilayer(
+        audio, TARGET_SR, 8, 2.0, 3.0, log_cb=logs.append, mono=True
+    )
+
+    assert any("4 mono voice layers" in msg for msg in logs)
+
+
+def test_mono_voice_leaves_binaural_in_stereo(tmp_path):
+    silent = tmp_path / "mono_no_beat.wav"
+    beating = tmp_path / "mono_with_beat.wav"
+    audio = np.sin(
+        2 * np.pi * 220 * np.arange(TARGET_SR // 4, dtype=np.float32) / TARGET_SR
+    )
+
+    mix_final(
+        audio, TARGET_SR, 8, 2.0, 3.0, 0, 0, str(silent),
+        binaural_type="none", mono_voice=True,
+    )
+    mix_final(
+        audio, TARGET_SR, 8, 2.0, 3.0, 0, 0, str(beating),
+        binaural_type="theta", binaural_volume=-12.0, mono_voice=True,
+    )
+
+    quiet, _ = sf.read(silent)
+    loud, _ = sf.read(beating)
+
+    # Mono voice alone: channels differ only by TPDF dither (~ -90 dBFS).
+    assert np.max(np.abs(quiet[:, 0] - quiet[:, 1])) < 1e-3
+    # Binaural must still produce a genuine inter-channel difference.
+    assert np.max(np.abs(loud[:, 0] - loud[:, 1])) > 0.01

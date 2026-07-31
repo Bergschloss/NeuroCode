@@ -110,6 +110,30 @@ def encode_single_stream(audio: np.ndarray, speed: float = 1.0,
 
 # ─── Multi-layer AM (subliminal encoding) ────────────────────────────────────
 
+def _build_layer_grid(
+    n: int,
+    speed_min: float,
+    speed_max: float,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Build one grid of AM carrier frequencies and stretch speeds for n layers.
+
+    Frequencies are spread evenly across the full carrier band with a small
+    random jitter; speeds are spread across the requested range. A single
+    layer degenerates to the lowest carrier and the slowest speed.
+    """
+    if n > 1:
+        freqs = np.linspace(CARRIER_MIN_HZ, CARRIER_MAX_HZ, n)
+        freqs = freqs + rng.uniform(-150.0, 150.0, n)
+        speeds = np.linspace(speed_min, speed_max, n)
+        speeds = speeds + rng.uniform(-0.05, 0.05, n)
+    else:
+        freqs = np.array([CARRIER_MIN_HZ])
+        speeds = np.array([speed_min])
+    return freqs, np.clip(speeds, 1.0, 20.0)
+
+
 def encode_multilayer(
     audio: np.ndarray,
     sr: int,
@@ -121,9 +145,15 @@ def encode_multilayer(
     p_end: int = 90,
     log_cb: Callable[[str], None] = None,
     cancel_cb: Callable[[], None] | None = None,
+    mono: bool = False,
 ) -> np.ndarray:
     """
-    Band-limited AM modulation with deterministic variation and stereo symmetry.
+    Band-limited AM modulation with deterministic variation.
+
+    In stereo mode the layers are split into two independent carrier grids,
+    one per channel. In mono mode a single grid of n_layers // 2 layers is
+    built and written identically to both channels, so the voice field
+    survives being summed to mono on loudspeakers.
     """
     # 1. Prepare source
     audio = _trim_silence(audio.astype(np.float32), threshold=0.01)
@@ -145,54 +175,59 @@ def encode_multilayer(
 
     # 2. Build layers configuration
     layers_config = []
-    # Standard mode: symmetrical stereo grid
-    n_left = n_layers // 2
-    n_right = n_layers - n_left
-    
-    if n_left > 1:
-        left_freqs = np.linspace(CARRIER_MIN_HZ, CARRIER_MAX_HZ, n_left)
-        left_freqs += rng.uniform(-150.0, 150.0, n_left)
-        left_speeds = np.linspace(speed_min, speed_max, n_left)
-        left_speeds += rng.uniform(-0.05, 0.05, n_left)
-    else:
-        left_freqs = np.array([CARRIER_MIN_HZ])
-        left_speeds = np.array([speed_min])
-        
-    if n_right > 1:
-        right_freqs = np.linspace(CARRIER_MIN_HZ, CARRIER_MAX_HZ, n_right)
-        right_freqs += rng.uniform(-150.0, 150.0, n_right)
-        right_speeds = np.linspace(speed_min, speed_max, n_right)
-        right_speeds += rng.uniform(-0.05, 0.05, n_right)
-    else:
-        right_freqs = np.array([CARRIER_MIN_HZ])
-        right_speeds = np.array([speed_min])
-        
-    # Ensure speeds do not drop below 1.0
-    left_speeds = np.clip(left_speeds, 1.0, 20.0)
-    right_speeds = np.clip(right_speeds, 1.0, 20.0)
-        
-    # Add Left channel layers (even panning)
-    for j in range(n_left):
-        layers_config.append({
-            'channel': 0,
-            'freq': left_freqs[j],
-            'speed': left_speeds[j],
-            'offset_zero': (j == 0) # Instant entry on Left Layer 0
-        })
-    # Add Right channel layers (odd panning)
-    for j in range(n_right):
-        layers_config.append({
-            'channel': 1,
-            'freq': right_freqs[j],
-            'speed': right_speeds[j],
-            'offset_zero': False # All Right layers start randomly to prevent phantom mono center
-        })
-        
-    if log_cb:
-        log_cb(
-            f"Processing: {n_left} layers Left, {n_right} layers Right "
-            f"(range {CARRIER_MIN_HZ:.0f} - {CARRIER_MAX_HZ:.0f} Hz)"
+
+    if mono:
+        # Mono voice: one carrier grid, written to both channels.
+        # Half the layer count keeps the per-ear density identical to stereo.
+        n_mono = max(2, n_layers // 2)
+        mono_freqs, mono_speeds = _build_layer_grid(
+            n_mono, speed_min, speed_max, rng
         )
+        for j in range(n_mono):
+            layers_config.append({
+                'channel': -1,  # -1 = both channels
+                'freq': mono_freqs[j],
+                'speed': mono_speeds[j],
+                'offset_zero': (j == 0),  # Instant entry on layer 0
+            })
+        if log_cb:
+            log_cb(
+                f"Processing: {n_mono} mono voice layers (dual-mono, "
+                f"range {CARRIER_MIN_HZ:.0f} - {CARRIER_MAX_HZ:.0f} Hz)"
+            )
+    else:
+        # Standard mode: symmetrical stereo grid
+        n_left = n_layers // 2
+        n_right = n_layers - n_left
+        left_freqs, left_speeds = _build_layer_grid(
+            n_left, speed_min, speed_max, rng
+        )
+        right_freqs, right_speeds = _build_layer_grid(
+            n_right, speed_min, speed_max, rng
+        )
+
+        # Add Left channel layers (even panning)
+        for j in range(n_left):
+            layers_config.append({
+                'channel': 0,
+                'freq': left_freqs[j],
+                'speed': left_speeds[j],
+                'offset_zero': (j == 0)  # Instant entry on Left Layer 0
+            })
+        # Add Right channel layers (odd panning)
+        for j in range(n_right):
+            layers_config.append({
+                'channel': 1,
+                'freq': right_freqs[j],
+                'speed': right_speeds[j],
+                'offset_zero': False  # All Right layers start randomly to prevent phantom mono center
+            })
+
+        if log_cb:
+            log_cb(
+                f"Processing: {n_left} layers Left, {n_right} layers Right "
+                f"(range {CARRIER_MIN_HZ:.0f} - {CARRIER_MAX_HZ:.0f} Hz)"
+            )
 
     # 3. Process each layer
     total_layers = len(layers_config)
@@ -236,8 +271,12 @@ def encode_multilayer(
         if pk > 0:
             layer_signal /= pk
         
-        # E. Add to corresponding channel
-        output[:, ch] += layer_signal
+        # E. Add to corresponding channel (-1 writes identically to both)
+        if ch < 0:
+            output[:, 0] += layer_signal
+            output[:, 1] += layer_signal
+        else:
+            output[:, ch] += layer_signal
         
         del stretched, source, chunk, carrier, layer_signal
         gc.collect()
@@ -277,6 +316,7 @@ def _get_music_audio(
     sr: int,
     notch_freqs: list | None = None,
     notch_Q: float = 30.0,
+    log_cb: Callable[[str], None] | None = None,
 ) -> np.ndarray:
     """
     Load, loop, low-pass filter (high cut @ 3kHz), optionally notch-filter, and normalize the selected music track.
@@ -296,7 +336,10 @@ def _get_music_audio(
             file_path = candidate
             break
     if file_path is None:
-        print(f"[WARN] Music track not found: {music_type} in {MUSIC_DIR}")
+        msg = f"[WARN] Music track not found: {music_type} in {MUSIC_DIR}"
+        print(msg)
+        if log_cb:
+            log_cb(f"⚠ Music file not found: {music_type}")
         return np.zeros((length_samples, 2), dtype=np.float32)
     try:
         with open(file_path, "rb") as f:
@@ -313,10 +356,9 @@ def _get_music_audio(
         n_frames = len(music_data)
         if n_frames == 0:
             return np.zeros((length_samples, 2), dtype=np.float32)
-        music_signal = np.resize(music_data, (length_samples, 2)).astype(
-            np.float32,
-            copy=False,
-        )
+            
+        # 1. Apply DSP on the original length music to save memory
+        music_signal = music_data
         
         # Apply 3000 Hz low-pass filter (high cut) to protect the voice spectrum
         cutoff = 3000.0
@@ -341,9 +383,17 @@ def _get_music_audio(
         if peak > 1.0:
             music_signal /= peak
             
+        # 2. Finally, loop the processed music to match the requested target length
+        music_signal = np.resize(music_signal, (length_samples, 2)).astype(
+            np.float32,
+            copy=False,
+        )
         return music_signal
     except Exception as e:
-        print(f"[ERROR] Failed to load or process music track {music_type}: {e}")
+        msg = f"[ERROR] Failed to load or process music track {music_type}: {e}"
+        print(msg)
+        if log_cb:
+            log_cb(f"⚠ Music loading FAILED: {e}")
         return np.zeros((length_samples, 2), dtype=np.float32)
 
 
@@ -490,6 +540,7 @@ def mix_final(
     log_cb: Callable[[str], None] = None,
     voice_volume: float = 0.0,
     cancel_cb: Callable[[], None] | None = None,
+    mono_voice: bool = False,
 ) -> None:
     """
     Build final audio with TPDF dithered MP3 320k, Lossless FLAC, or WAV output.
@@ -506,6 +557,7 @@ def mix_final(
             progress_cb=progress_cb, p_start=25, p_end=90,
             log_cb=log_cb,
             cancel_cb=cancel_cb,
+            mono=mono_voice,
         )
         main_encoded *= 10 ** (voice_volume / 20.0)
         final = main_encoded.copy()
@@ -540,9 +592,18 @@ def mix_final(
                 if notch_freqs is not None and log_cb:
                     log_cb("Applying surgical Notch EQ to music...")
             music = _get_music_audio(
-                music_type, len(final), sr, notch_freqs=notch_freqs
+                music_type, len(final), sr, notch_freqs=notch_freqs,
+                log_cb=log_cb,
             )
-            final += music * (10 ** (music_volume / 20.0))
+            if np.allclose(music, 0):
+                if log_cb:
+                    log_cb("⚠ Music track returned silence — skipping music mix.")
+            else:
+                final += music * (10 ** (music_volume / 20.0))
+                if log_cb:
+                    peak = float(np.max(np.abs(music)))
+                    rms = float(np.sqrt(np.mean(music**2)))
+                    log_cb(f"Music mixed: peak={peak:.3f}, RMS={rms:.3f}, volume={music_volume:.0f} dB")
 
         if silence_start > 0:
             fade_in_samples = min(int(silence_start * sr), len(final))
